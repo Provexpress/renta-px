@@ -50,6 +50,7 @@ Necesitas estos datos:
 
 La app lee `sheetName` si existe; si no coincide, usa la primera hoja del archivo.
 Para Gerencia, `subRentSheetName` habilita una segunda vista llamada `Subrenta` usando otra hoja del mismo Excel, por ejemplo `PC COM`.
+Los comerciales marcados con `subRenta: true` en `js/permissions.js` también ven la pestaña `Subrenta`, filtrada por su nombre comercial.
 
 ## Configurar `js/config.js`
 

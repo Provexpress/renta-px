@@ -37,7 +37,7 @@
       const scopedRows = PermissionService.getScopedRows(user, rows);
       const subRentRows = getSubRentRows(user, arrayBuffer);
 
-      if (!scopedRows.length && PermissionService.isCommercial(user)) {
+      if (!scopedRows.length && !subRentRows.length && PermissionService.isCommercial(user)) {
         renderError("No hay registros asignados a este comercial.");
         return;
       }
@@ -53,13 +53,14 @@
 
   function getSubRentRows(user, arrayBuffer) {
     const sheetName = APP_CONFIG.graph.sharePointFile.subRentSheetName;
-    if (user.role !== "gerencia" || !sheetName) {
+    if (!PermissionService.canViewSubRent(user) || !sheetName) {
       return [];
     }
 
     try {
       const rawRows = ExcelService.readExcelArrayBuffer(arrayBuffer, sheetName);
-      return ExcelService.normalizeRows(rawRows);
+      const rows = ExcelService.normalizeRows(rawRows);
+      return PermissionService.getScopedRows(user, rows);
     } catch (error) {
       console.warn("No se pudo leer la hoja de subrenta.", error);
       return [];

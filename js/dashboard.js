@@ -5,6 +5,7 @@
 
   function renderDashboard({ profile, user, rows, scopedRows, subRentRows = [] }) {
     destroyCharts();
+    normalizeActiveDataset(user, scopedRows, subRentRows);
     const datasetRows = getDatasetRows(user, scopedRows, subRentRows);
     const visibleRows = getVisibleRows(user, datasetRows);
 
@@ -30,14 +31,14 @@
   }
 
   function renderDatasetTabs(user, subRentRows) {
-    if (user.role !== "gerencia") {
+    if (!canUseDatasetTabs(user, subRentRows)) {
       return "";
     }
 
     return `
       <nav class="dataset-tabs" aria-label="Vistas de arriendo">
         <button class="dataset-tab ${activeDataset === "renta" ? "active" : ""}" type="button" data-dataset="renta">Renta</button>
-        <button class="dataset-tab ${activeDataset === "subrenta" ? "active" : ""}" type="button" data-dataset="subrenta"${subRentRows.length ? "" : " disabled"}>Subrenta</button>
+        <button class="dataset-tab ${activeDataset === "subrenta" ? "active" : ""}" type="button" data-dataset="subrenta">Subrenta</button>
       </nav>
     `;
   }
@@ -120,11 +121,25 @@
   }
 
   function getDatasetRows(user, scopedRows, subRentRows) {
-    if (user.role === "gerencia" && activeDataset === "subrenta") {
+    if (PermissionService.canViewSubRent(user) && activeDataset === "subrenta") {
       return subRentRows;
     }
 
     return scopedRows;
+  }
+
+  function canUseDatasetTabs(user, subRentRows) {
+    return (user.role === "gerencia" || PermissionService.isCommercial(user)) && subRentRows.length > 0;
+  }
+
+  function normalizeActiveDataset(user, scopedRows, subRentRows) {
+    if (activeDataset === "subrenta" && !PermissionService.canViewSubRent(user)) {
+      activeDataset = "renta";
+    }
+
+    if (PermissionService.isCommercial(user) && !scopedRows.length && subRentRows.length) {
+      activeDataset = "subrenta";
+    }
   }
 
   function getDatasetLabel() {

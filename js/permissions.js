@@ -27,7 +27,8 @@ const USER_ACCESS = {
   "astrid.jimenez@provexpress.com.co": {
     role: "comercial",
     comercial: "Astrid Jimenez",
-    comercialAliases: ["Astrid Jimenez", "Leidy Astrid Jimenez Ossa"]
+    comercialAliases: ["Astrid Jimenez", "Leidy Astrid Jimenez Ossa"],
+    subRenta: true
   },
   "oscar.beltran@provexpress.com.co": {
     role: "comercial",
@@ -42,7 +43,8 @@ const USER_ACCESS = {
   "angela.torres@provexpress.com.co": {
     role: "comercial",
     comercial: "Angela Torres",
-    comercialAliases: ["Angela Torres", "Angela Rocio Torres Matallana"]
+    comercialAliases: ["Angela Torres", "Angela Rocio Torres Matallana"],
+    subRenta: true
   },
   "yeison.urrego@provexpress.com.co": {
     role: "comercial",
@@ -52,7 +54,14 @@ const USER_ACCESS = {
   "dilma.cuesta@provexpress.com.co": {
     role: "comercial",
     comercial: "Dilma Cuesta",
-    comercialAliases: ["Dilma Cuesta", "Dilma Constanza Cuesta Rubiano"]
+    comercialAliases: ["Dilma Cuesta", "Dilma Constanza Cuesta Rubiano"],
+    subRenta: true
+  },
+  "karen.carrillo@provexpress.com.co": {
+    role: "comercial",
+    comercial: "Karent Carrillo",
+    comercialAliases: ["Karent Carrillo", "Karent Yessenia Carrillo Marin", "Karen Carrillo"],
+    subRenta: true
   },
   "tatiana.parra@provexpress.com.co": {
     role: "comercial",
@@ -154,6 +163,10 @@ const USER_ACCESS = {
     return ["gerencia", "finanzas", "operaciones"].includes(user.role);
   }
 
+  function canViewSubRent(user) {
+    return user.role === "gerencia" || Boolean(user.subRenta);
+  }
+
   function getScopedRows(user, rows) {
     if (user.role === "comercial") {
       const aliases = user.comercialAliases || [user.comercial];
@@ -171,6 +184,7 @@ const USER_ACCESS = {
     canViewFinancials,
     canViewCommercialRanking,
     canViewGlobalDashboard,
+    canViewSubRent,
     getScopedRows
   };
 })();
