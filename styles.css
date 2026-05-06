@@ -184,6 +184,58 @@ button {
   font-weight: 700;
 }
 
+.dashboard-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 14px;
+  padding: 16px 18px;
+  border: 1px solid rgba(26, 43, 107, 0.12);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 252, 255, 0.94));
+  box-shadow: var(--shadow);
+}
+
+.control-title {
+  margin: 0;
+  font-size: 18px;
+  color: var(--primary-dark);
+}
+
+.control-copy {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.control-field {
+  display: grid;
+  gap: 6px;
+  min-width: min(320px, 100%);
+}
+
+.control-field span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.control-field select {
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 12px;
+  color: var(--text);
+  background: rgba(250, 252, 255, 0.92);
+}
+
+.control-field select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.12);
+}
+
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
@@ -421,7 +473,8 @@ tbody tr:hover {
   }
 
   .topbar,
-  .user-panel {
+  .user-panel,
+  .dashboard-controls {
     align-items: flex-start;
     flex-direction: column;
     text-align: left;

@@ -1,25 +1,29 @@
 (function () {
   let chartInstances = [];
+  let activeCommercialFilter = "";
 
   function renderDashboard({ profile, user, rows, scopedRows }) {
     destroyCharts();
+    const visibleRows = getVisibleRows(user, scopedRows);
 
     const app = document.getElementById("app");
     app.innerHTML = `
       <main class="dashboard-page">
         ${renderHeader(profile, user)}
         <p class="status-line">Datos cargados desde SharePoint</p>
-        ${renderKpis(user, scopedRows)}
+        ${renderDashboardControls(user, scopedRows, visibleRows)}
+        ${renderKpis(user, visibleRows)}
         <section class="content-grid">
-          ${renderQualityPanel(scopedRows)}
+          ${renderQualityPanel(visibleRows)}
           ${renderCharts(user)}
           ${TableView.renderTableShell(user)}
         </section>
       </main>
     `;
 
-    renderChartInstances(user, scopedRows);
-    TableView.initTable(user, scopedRows);
+    bindDashboardEvents({ profile, user, rows, scopedRows });
+    renderChartInstances(user, visibleRows);
+    TableView.initTable(user, visibleRows);
   }
 
   function renderHeader(profile, user) {
@@ -46,6 +50,71 @@
         </div>
       </header>
     `;
+  }
+
+  function renderDashboardControls(user, rows, visibleRows) {
+    if (user.role !== "gerencia") {
+      return "";
+    }
+
+    const options = getCommercialOptions(rows);
+    const selectedLabel = activeCommercialFilter || "Todos los comerciales";
+
+    return `
+      <section class="dashboard-controls" aria-label="Filtros de gerencia">
+        <div>
+          <p class="eyebrow">Filtro gerencial</p>
+          <h2 class="control-title">${escapeHtml(selectedLabel)}</h2>
+          <p class="control-copy">${formatNumber(visibleRows.length)} registros visibles</p>
+        </div>
+        <label class="control-field">
+          <span>Comercial</span>
+          <select id="dashboardCommercialFilter">
+            <option value="">Todos los comerciales</option>
+            ${options.map((name) => `
+              <option value="${escapeHtml(name)}"${name === activeCommercialFilter ? " selected" : ""}>${escapeHtml(name)}</option>
+            `).join("")}
+          </select>
+        </label>
+      </section>
+    `;
+  }
+
+  function bindDashboardEvents(context) {
+    const logoutButton = document.getElementById("logoutButton");
+    if (logoutButton) {
+      logoutButton.addEventListener("click", () => AuthService.logout());
+    }
+
+    const commercialFilter = document.getElementById("dashboardCommercialFilter");
+    if (commercialFilter) {
+      commercialFilter.addEventListener("change", () => {
+        activeCommercialFilter = commercialFilter.value;
+        renderDashboard(context);
+      });
+    }
+  }
+
+  function getVisibleRows(user, rows) {
+    if (user.role !== "gerencia" || !activeCommercialFilter) {
+      return rows;
+    }
+
+    return rows.filter((row) => ExcelService.comparableText(row.comercial) === ExcelService.comparableText(activeCommercialFilter));
+  }
+
+  function getCommercialOptions(rows) {
+    const byKey = new Map();
+
+    rows.forEach((row) => {
+      const name = row.comercial;
+      const key = ExcelService.comparableText(name);
+      if (name && key && !byKey.has(key)) {
+        byKey.set(key, name);
+      }
+    });
+
+    return Array.from(byKey.values()).sort((a, b) => a.localeCompare(b, "es"));
   }
 
   function renderKpis(user, rows) {

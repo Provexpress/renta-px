@@ -42,7 +42,6 @@
       }
 
       DashboardView.renderDashboard({ profile, user, rows, scopedRows });
-      document.getElementById("logoutButton").addEventListener("click", () => AuthService.logout());
       if (PermissionService.canViewGlobalDashboard(user)) {
         validateExpectedReading(rows);
       }
