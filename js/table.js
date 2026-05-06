@@ -216,18 +216,10 @@
     if (!state.filteredRows.length) return;
 
     const columns = getCommercialExportColumns();
-    const html = buildStyledExcelHtml(columns, state.filteredRows);
-    const blob = new Blob([html], {
-      type: "application/vnd.ms-excel;charset=utf-8"
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = getExportFileName();
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    const worksheet = buildStyledWorksheet(columns, state.filteredRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Renta PX");
+    XLSX.writeFile(workbook, getExportFileName());
   }
 
   function getCommercialExportColumns() {
@@ -244,87 +236,141 @@
     ];
   }
 
-  function buildStyledExcelHtml(columns, rows) {
+  function buildStyledWorksheet(columns, rows) {
     const title = PermissionService.isCommercial(state.user)
       ? `Cartera comercial - ${state.user.comercial}`
       : "Renta PX - Equipos filtrados";
     const generatedAt = new Date().toLocaleDateString("es-CO");
-    const headerCells = columns.map((column) => `<th>${escapeExcelHtml(column.label)}</th>`).join("");
-    const bodyRows = rows.map((row, index) => {
-      const cells = columns.map((column) => {
-        const value = getExportDisplayValue(row, column);
-        const className = column.type === "currency" ? "money" : "";
-        return `<td class="${className}">${escapeExcelHtml(value)}</td>`;
-      }).join("");
-      return `<tr class="${index % 2 ? "even" : "odd"}">${cells}</tr>`;
-    }).join("");
 
-    return `
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <style>
-            body { font-family: Segoe UI, Arial, sans-serif; color: #1A2B6B; }
-            .title { font-size: 20px; font-weight: 700; color: #1A2B6B; }
-            .subtitle { font-size: 12px; color: #677592; }
-            table { border-collapse: collapse; width: 100%; }
-            th {
-              background: #1A2B6B;
-              color: #FFFFFF;
-              font-weight: 700;
-              border: 1px solid #1A2B6B;
-              padding: 8px;
-              text-align: left;
-            }
-            td {
-              border: 1px solid #D7E0F0;
-              padding: 7px;
-              color: #1A2B6B;
-              mso-number-format: "\\@";
-            }
-            tr.odd td { background: #FFFFFF; }
-            tr.even td { background: #F4F7FF; }
-            td.money {
-              color: #1565C0;
-              font-weight: 700;
-              text-align: right;
-            }
-          </style>
-        </head>
-        <body>
-          <table>
-            <tr><td colspan="${columns.length}" class="title">${escapeExcelHtml(title)}</td></tr>
-            <tr><td colspan="${columns.length}" class="subtitle">Generado: ${escapeExcelHtml(generatedAt)} | Registros: ${rows.length}</td></tr>
-            <tr><td colspan="${columns.length}"></td></tr>
-            <tr>${headerCells}</tr>
-            ${bodyRows}
-          </table>
-        </body>
-      </html>
-    `;
+    const data = [
+      [title],
+      [`Generado: ${generatedAt} | Registros: ${rows.length}`],
+      [],
+      columns.map((column) => column.label),
+      ...rows.map((row) => columns.map((column) => getExportValue(row, column)))
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(data);
+    const lastColumn = columns.length - 1;
+    const lastRow = rows.length + 3;
+
+    worksheet["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: lastColumn } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: lastColumn } }
+    ];
+    worksheet["!cols"] = columns.map((column) => ({ wch: getExportColumnWidth(column) }));
+    worksheet["!autofilter"] = {
+      ref: XLSX.utils.encode_range({ s: { r: 3, c: 0 }, e: { r: lastRow, c: lastColumn } })
+    };
+
+    styleExportWorksheet(worksheet, columns, rows.length);
+    return worksheet;
   }
 
-  function getExportDisplayValue(row, column) {
+  function getExportValue(row, column) {
     if (column.type === "currency") {
-      return DashboardView.formatCurrency(row[column.key]);
+      return Number(row[column.key]) || 0;
     }
 
     return row[column.key] || "";
   }
 
-  function escapeExcelHtml(value) {
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
+  function styleExportWorksheet(worksheet, columns, rowCount) {
+    const lastColumn = columns.length - 1;
+    const titleCell = worksheet.A1;
+    const subtitleCell = worksheet.A2;
+    if (titleCell) {
+      titleCell.s = {
+        font: { bold: true, color: { rgb: "1A2B6B" }, sz: 18 },
+        fill: { fgColor: { rgb: "EEF3FF" } },
+        alignment: { horizontal: "center", vertical: "center" }
+      };
+    }
+    if (subtitleCell) {
+      subtitleCell.s = {
+        font: { color: { rgb: "677592" }, sz: 11 },
+        alignment: { horizontal: "center", vertical: "center" }
+      };
+    }
+
+    for (let columnIndex = 0; columnIndex <= lastColumn; columnIndex += 1) {
+      const headerCell = worksheet[XLSX.utils.encode_cell({ r: 3, c: columnIndex })];
+      if (headerCell) {
+        headerCell.s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "1A2B6B" } },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: getExportBorder()
+        };
+      }
+    }
+
+    for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+      const excelRow = rowIndex + 4;
+      const fillColor = rowIndex % 2 ? "F4F7FF" : "FFFFFF";
+      columns.forEach((column, columnIndex) => {
+        const cell = worksheet[XLSX.utils.encode_cell({ r: excelRow, c: columnIndex })];
+        if (!cell) return;
+        cell.s = {
+          font: { color: { rgb: column.type === "currency" ? "1565C0" : "1A2B6B" }, bold: column.type === "currency" },
+          fill: { fgColor: { rgb: fillColor } },
+          alignment: { horizontal: column.type === "currency" ? "right" : "left", vertical: "center" },
+          border: getExportBorder()
+        };
+        if (column.type === "currency") {
+          cell.t = "n";
+          cell.z = '"$"#,##0';
+        }
+      });
+    }
+  }
+
+  function getExportColumnWidth(column) {
+    const widths = {
+      cliente: 30,
+      comercial: 26,
+      tipo: 14,
+      marca: 16,
+      modelo: 24,
+      serial: 24,
+      placa: 16,
+      fechaEntrega: 16,
+      valorArriendo: 18
+    };
+    return widths[column.key] || 16;
+  }
+
+  function getExportBorder() {
+    return {
+      top: { style: "thin", color: { rgb: "D7E0F0" } },
+      right: { style: "thin", color: { rgb: "D7E0F0" } },
+      bottom: { style: "thin", color: { rgb: "D7E0F0" } },
+      left: { style: "thin", color: { rgb: "D7E0F0" } }
+    };
   }
 
   function getExportFileName() {
     const date = new Date().toISOString().slice(0, 10);
-    const role = state.user.role === "comercial" ? ExcelService.comparableText(state.user.comercial).replace(/\s+/g, "-") : state.user.role;
-    return `renta-px-${role}-${date}.xls`;
+    const client = getExportClientName();
+    return `renta-px-${client}-${date}.xlsx`;
+  }
+
+  function getExportClientName() {
+    const clients = Array.from(new Set(state.filteredRows.map((row) => row.cliente).filter(Boolean)));
+    if (clients.length === 1) {
+      return slugifyFileName(clients[0]);
+    }
+
+    const selectedClient = document.getElementById("clientFilter") && document.getElementById("clientFilter").value;
+    if (selectedClient) {
+      return slugifyFileName(selectedClient);
+    }
+
+    return "varios-clientes";
+  }
+
+  function slugifyFileName(value) {
+    const normalized = ExcelService.comparableText(value).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    return normalized || "cliente";
   }
 
   function statusBadge(status) {
