@@ -10,6 +10,7 @@ const APP_CONFIG = {
       siteHostname: "empresa.sharepoint.com",
       sitePath: "/sites/NOMBRE_DEL_SITIO",
       driveName: "Documents",
+      driveNameAliases: ["Documentos", "Documentos compartidos"],
       filePath: "/Ruta/Archivo/Base.xlsx",
       sheetName: "Hoja1"
     }

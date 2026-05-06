@@ -7,11 +7,12 @@ const APP_CONFIG = {
   graph: {
     scopes: ["User.Read", "Files.Read.All", "Sites.Read.All"],
     sharePointFile: {
-      siteHostname: "empresa.sharepoint.com",
-      sitePath: "/sites/NOMBRE_DEL_SITIO",
-      driveName: "Documents",
-      filePath: "/Ruta/Archivo/Base.xlsx",
-      sheetName: "Hoja1"
+      siteHostname: "provexpress.sharepoint.com",
+      sitePath: "/sites/ProvexpressIntranet/servicios",
+      driveName: "Documentos",
+      driveNameAliases: ["Documentos compartidos", "Documents"],
+      filePath: "/Coordinador de servicios/Renta/RENTA_2024_T_1.xlsx",
+      sheetName: "PROVEXPRESS"
     }
   }
 };

@@ -38,10 +38,14 @@
   async function getDriveId(siteId) {
     const file = APP_CONFIG.graph.sharePointFile;
     const drives = await graphFetch(`/sites/${siteId}/drives`);
-    const drive = (drives.value || []).find((item) => item.name === file.driveName);
+    const allowedNames = [file.driveName, ...(file.driveNameAliases || [])]
+      .filter(Boolean)
+      .map((name) => name.toLowerCase());
+    const drive = (drives.value || []).find((item) => allowedNames.includes(String(item.name || "").toLowerCase()));
 
     if (!drive) {
-      const error = new Error(`No se encontró la biblioteca "${file.driveName}" en SharePoint.`);
+      const available = (drives.value || []).map((item) => item.name).join(", ");
+      const error = new Error(`No se encontró la biblioteca "${file.driveName}" en SharePoint. Bibliotecas disponibles: ${available}`);
       error.status = 404;
       throw error;
     }
