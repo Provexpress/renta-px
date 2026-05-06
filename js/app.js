@@ -55,7 +55,7 @@
     app.innerHTML = `
       <section class="state-screen">
         <div class="state-card">
-          <div class="brand-mark">PX</div>
+          <img class="brand-mark" src="assets/provex_icon_64.png" alt="Provexpress">
           <h1>Renta PX</h1>
           <p>Inicia sesión con Microsoft para continuar.</p>
           <button class="primary-button" id="loginButton">Iniciar sesión con Microsoft</button>
@@ -78,7 +78,7 @@
     app.innerHTML = `
       <section class="state-screen">
         <div class="state-card">
-          <div class="brand-mark">PX</div>
+          <img class="brand-mark" src="assets/provex_icon_64.png" alt="Provexpress">
           <h1>Renta PX</h1>
           <p>${DashboardView ? DashboardView.escapeHtml(message) : message}</p>
         </div>
@@ -90,7 +90,7 @@
     app.innerHTML = `
       <section class="state-screen">
         <div class="state-card">
-          <div class="brand-mark">PX</div>
+          <img class="brand-mark" src="assets/provex_icon_64.png" alt="Provexpress">
           <h1>Renta PX</h1>
           <p>${DashboardView.escapeHtml(message)}</p>
           <button class="primary-button" id="retryButton">Reintentar</button>

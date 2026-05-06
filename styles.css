@@ -1,19 +1,24 @@
 :root {
-  --bg: #eef2f6;
+  --bg: #f5f7fd;
   --surface: #ffffff;
-  --surface-soft: #f8fafc;
-  --text: #172033;
-  --muted: #64748b;
-  --line: #d9e2ec;
-  --primary: #1769aa;
-  --primary-dark: #0f4874;
-  --green: #16834a;
+  --surface-soft: #f4f7ff;
+  --surface-tint: #eef3ff;
+  --text: #1a2b6b;
+  --text-soft: #2f437f;
+  --muted: #677592;
+  --line: #d7e0f0;
+  --primary: #1565c0;
+  --primary-dark: #1a2b6b;
+  --purple: #6a3fa0;
+  --cyan: #2abfdf;
+  --green: #16a34a;
   --green-soft: #e8f7ef;
-  --yellow: #b7791f;
+  --yellow: #d97706;
   --yellow-soft: #fff6da;
-  --red: #c93c37;
+  --red: #c62828;
   --red-soft: #fdebea;
-  --shadow: 0 12px 28px rgba(15, 35, 55, 0.08);
+  --shadow: 0 18px 42px rgba(26, 43, 107, 0.08);
+  --shadow-strong: 0 20px 44px rgba(26, 43, 107, 0.1);
 }
 
 * {
@@ -24,8 +29,9 @@ body {
   margin: 0;
   min-height: 100vh;
   color: var(--text);
-  background: var(--bg);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  background-image: linear-gradient(180deg, var(--surface-tint) 0%, var(--surface-soft) 42%, var(--bg) 100%);
+  font-family: "Futura PT", "Futura Std", "Futura", "Twentieth Century", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
 }
 
 button,
@@ -54,23 +60,18 @@ button {
 .state-card {
   width: min(460px, 100%);
   padding: 32px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  border: 1px solid rgba(26, 43, 107, 0.12);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 252, 255, 0.96));
+  box-shadow: var(--shadow-strong);
 }
 
 .brand-mark {
-  display: inline-grid;
-  width: 54px;
-  height: 54px;
-  place-items: center;
-  margin-bottom: 14px;
-  border-radius: 8px;
-  color: white;
-  background: var(--primary);
-  font-weight: 800;
-  letter-spacing: 0;
+  display: block;
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+  flex: 0 0 auto;
 }
 
 .state-card h1,
@@ -94,24 +95,26 @@ button {
   justify-content: center;
   gap: 8px;
   min-height: 40px;
-  border-radius: 8px;
+  border-radius: 12px;
   font-weight: 700;
 }
 
 .primary-button {
   padding: 0 18px;
   color: white;
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 48%, var(--purple) 100%);
+  box-shadow: 0 14px 26px rgba(26, 43, 107, 0.16);
 }
 
 .primary-button:hover {
-  background: var(--primary-dark);
+  filter: brightness(1.04);
 }
 
 .secondary-button {
   padding: 0 14px;
   color: var(--primary-dark);
-  background: #e8f1f8;
+  background: rgba(21, 101, 192, 0.08);
+  border: 1px solid rgba(26, 43, 107, 0.1);
 }
 
 .dashboard-page {
@@ -123,21 +126,33 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 18px;
-  border-radius: 8px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  min-height: 92px;
+  padding: 18px 20px;
+  border: 1px solid rgba(26, 43, 107, 0.12);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(250, 252, 255, 0.98), rgba(245, 248, 255, 0.96));
+  box-shadow: var(--shadow-strong);
 }
 
 .brand-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--purple);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .brand-title {
   margin: 0;
-  font-size: 24px;
+  font-size: clamp(24px, 2.2vw, 34px);
+  line-height: 1.05;
 }
 
 .brand-subtitle {
@@ -179,14 +194,24 @@ button {
 .kpi-card,
 .panel,
 .chart-panel {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--surface);
+  border: 1px solid rgba(26, 43, 107, 0.12);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 252, 255, 0.96));
   box-shadow: var(--shadow);
 }
 
 .kpi-card {
+  position: relative;
   padding: 16px;
+  overflow: hidden;
+}
+
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-dark), var(--primary), var(--purple));
 }
 
 .kpi-label {
@@ -198,7 +223,7 @@ button {
 .kpi-value {
   margin-top: 10px;
   color: var(--primary-dark);
-  font-size: 24px;
+  font-size: 25px;
   font-weight: 800;
   line-height: 1.15;
   overflow-wrap: anywhere;
@@ -231,6 +256,7 @@ button {
 .panel-title {
   margin: 0 0 14px;
   font-size: 18px;
+  color: var(--primary-dark);
 }
 
 .chart-box {
@@ -246,9 +272,9 @@ button {
 
 .quality-item {
   padding: 14px;
-  border-radius: 8px;
-  background: var(--surface-soft);
-  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(244, 247, 255, 0.86);
+  border: 1px solid rgba(26, 43, 107, 0.1);
 }
 
 .quality-number {
@@ -274,17 +300,24 @@ button {
   min-width: 0;
   height: 40px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 0 10px;
-  background: white;
+  background: rgba(250, 252, 255, 0.92);
   color: var(--text);
+}
+
+.table-toolbar input:focus,
+.table-toolbar select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.12);
 }
 
 .table-wrap {
   width: 100%;
   overflow: auto;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 table {
@@ -308,7 +341,7 @@ th {
   top: 0;
   z-index: 1;
   color: var(--muted);
-  background: var(--surface-soft);
+  background: #f6f8ff;
   font-weight: 800;
 }
 
@@ -317,7 +350,7 @@ th.sortable {
 }
 
 tbody tr:hover {
-  background: #f7fbff;
+  background: #f4f8ff;
 }
 
 .badge {

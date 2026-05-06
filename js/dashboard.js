@@ -30,8 +30,9 @@
     return `
       <header class="topbar">
         <div class="brand-row">
-          <div class="brand-mark">PX</div>
+          <img class="brand-mark" src="assets/provex_icon_64.png" alt="Provexpress">
           <div>
+            <p class="eyebrow">Provex One</p>
             <h1 class="brand-title">Renta PX</h1>
             <p class="brand-subtitle">Dashboard de Arriendos</p>
           </div>
@@ -196,7 +197,7 @@
         datasets: [{
           label,
           data: data.map((item) => item.value),
-          backgroundColor: "#1769aa",
+          backgroundColor: "#1565c0",
           borderRadius: 6
         }]
       },
@@ -224,7 +225,7 @@
         labels: data.map((item) => item.label),
         datasets: [{
           data: data.map((item) => item.value),
-          backgroundColor: ["#1769aa", "#16834a", "#b7791f", "#c93c37", "#5b6b7a", "#7c3aed", "#0891b2", "#be6a15"]
+          backgroundColor: ["#1a2b6b", "#1565c0", "#6a3fa0", "#2abfdf", "#16a34a", "#d97706", "#c62828", "#677592"]
         }]
       },
       options: {
