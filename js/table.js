@@ -1,5 +1,17 @@
 (function () {
   const PAGE_SIZE = 25;
+  const INVENTORY_COLUMNS = [
+    { key: "memoria", label: "Memoria" },
+    { key: "tamanoDisco", label: "Tamaño disco" },
+    { key: "garantia", label: "Garantía" },
+    { key: "office", label: "Office" },
+    { key: "morral", label: "Morral" },
+    { key: "guaya", label: "Guaya" },
+    { key: "mouse", label: "Mouse" },
+    { key: "teclado", label: "Teclado" },
+    { key: "monitor", label: "Monitor" },
+    { key: "accesorios", label: "Accesorios" }
+  ];
   let state = {
     rows: [],
     filteredRows: [],
@@ -83,7 +95,17 @@
         row.marca,
         row.modelo,
         row.serial,
-        row.placa
+        row.placa,
+        row.memoria,
+        row.tamanoDisco,
+        row.garantia,
+        row.office,
+        row.morral,
+        row.guaya,
+        row.mouse,
+        row.teclado,
+        row.monitor,
+        row.accesorios
       ].join(" "));
 
       return (!search || searchText.includes(search))
@@ -194,6 +216,7 @@
       { key: "modelo", label: "Modelo" },
       { key: "serial", label: "Serial" },
       { key: "placa", label: "Placa" },
+      ...INVENTORY_COLUMNS,
       { key: "fechaEntrega", label: "Fecha entrega" }
     );
 
@@ -237,6 +260,7 @@
       { key: "modelo", label: "Modelo" },
       { key: "serial", label: "Serial" },
       { key: "placa", label: "Placa" },
+      ...INVENTORY_COLUMNS,
       { key: "fechaEntrega", label: "Fecha entrega" },
       { key: "valorArriendo", label: "Valor arriendo", type: "currency" }
     ];
@@ -339,6 +363,16 @@
       modelo: 24,
       serial: 24,
       placa: 16,
+      memoria: 14,
+      tamanoDisco: 18,
+      garantia: 16,
+      office: 12,
+      morral: 12,
+      guaya: 12,
+      mouse: 12,
+      teclado: 12,
+      monitor: 12,
+      accesorios: 24,
       fechaEntrega: 16,
       valorArriendo: 18
     };
