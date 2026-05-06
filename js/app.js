@@ -104,6 +104,9 @@
   function getFriendlyError(error) {
     if (!error) return "Ocurrió un error inesperado.";
     if (error.status === 403 || error.status === 401) return "No tienes permisos para consultar este archivo.";
+    if (error.status === 404 && error.graphCode === "itemNotFound") {
+      return "No se encontró el archivo en SharePoint o tu usuario no tiene acceso de lectura.";
+    }
     if (error.status === 404) return "No se encontró el archivo en SharePoint.";
     if ((error.message || "").includes("No se pudo leer el Excel")) return "No se pudo leer el Excel.";
     return error.friendlyMessage || "Ocurrió un error cargando el dashboard.";

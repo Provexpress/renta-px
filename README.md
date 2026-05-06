@@ -96,6 +96,8 @@ Esta versión es 100% estática. El filtro por comercial ocurre en el navegador,
 
 En una fase futura conviene usar backend, Azure Function, Power Automate/API, o separar archivos y permisos por comercial en SharePoint.
 
+Como los permisos actuales son delegados, cada usuario también debe tener acceso de lectura en SharePoint al sitio, biblioteca, carpeta o archivo configurado. Si un comercial ve `itemNotFound`, normalmente SharePoint no le permite leer el Excel o la ruta donde está guardado.
+
 ## Validación esperada con la base de ejemplo
 
 La lectura del Excel debe acercarse a estos valores, sin quemarlos en el código:

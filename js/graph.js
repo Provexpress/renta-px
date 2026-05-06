@@ -13,8 +13,11 @@
 
     if (!response.ok) {
       const body = await response.text();
-      const error = new Error(body || response.statusText);
+      const parsedError = parseGraphError(body);
+      const error = new Error(parsedError.message || body || response.statusText);
       error.status = response.status;
+      error.graphCode = parsedError.code;
+      error.rawBody = body;
       throw error;
     }
 
@@ -27,6 +30,21 @@
     }
 
     return response.json();
+  }
+
+  function parseGraphError(body) {
+    try {
+      const payload = JSON.parse(body);
+      return {
+        code: payload.error && payload.error.code,
+        message: payload.error && payload.error.message
+      };
+    } catch (error) {
+      return {
+        code: "",
+        message: body
+      };
+    }
   }
 
   async function getSiteId() {
