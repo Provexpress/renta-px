@@ -1,0 +1,143 @@
+(function () {
+  const app = document.getElementById("app");
+
+  document.addEventListener("DOMContentLoaded", start);
+
+  async function start() {
+    try {
+      validateConfig();
+      renderLoading("Autenticando...");
+      const account = await AuthService.initializeMsal();
+
+      if (!account) {
+        renderLogin();
+        return;
+      }
+
+      await loadDashboard();
+    } catch (error) {
+      renderError(getFriendlyError(error), error);
+    }
+  }
+
+  async function loadDashboard() {
+    try {
+      renderLoading("Cargando datos desde SharePoint...");
+      const profile = await AuthService.getUserProfile();
+      const user = PermissionService.getCurrentUserAccess(profile);
+
+      if (user.role === "sin_permiso") {
+        renderError("No tienes permisos para consultar este archivo.");
+        return;
+      }
+
+      const arrayBuffer = await GraphService.downloadExcelFile();
+      const rawRows = ExcelService.readExcelArrayBuffer(arrayBuffer);
+      const rows = ExcelService.normalizeRows(rawRows);
+      const scopedRows = PermissionService.getScopedRows(user, rows);
+
+      if (!scopedRows.length && PermissionService.isCommercial(user)) {
+        renderError("No hay registros asignados a este comercial.");
+        return;
+      }
+
+      DashboardView.renderDashboard({ profile, user, rows, scopedRows });
+      document.getElementById("logoutButton").addEventListener("click", () => AuthService.logout());
+      if (PermissionService.canViewGlobalDashboard(user)) {
+        validateExpectedReading(rows);
+      }
+    } catch (error) {
+      renderError(getFriendlyError(error), error);
+    }
+  }
+
+  function renderLogin() {
+    app.innerHTML = `
+      <section class="state-screen">
+        <div class="state-card">
+          <div class="brand-mark">PX</div>
+          <h1>Renta PX</h1>
+          <p>Inicia sesión con Microsoft para continuar.</p>
+          <button class="primary-button" id="loginButton">Iniciar sesión con Microsoft</button>
+        </div>
+      </section>
+    `;
+
+    document.getElementById("loginButton").addEventListener("click", async () => {
+      try {
+        renderLoading("Autenticando...");
+        await AuthService.login();
+        await loadDashboard();
+      } catch (error) {
+        renderError(getFriendlyError(error), error);
+      }
+    });
+  }
+
+  function renderLoading(message) {
+    app.innerHTML = `
+      <section class="state-screen">
+        <div class="state-card">
+          <div class="brand-mark">PX</div>
+          <h1>Renta PX</h1>
+          <p>${DashboardView ? DashboardView.escapeHtml(message) : message}</p>
+        </div>
+      </section>
+    `;
+  }
+
+  function renderError(message, error) {
+    app.innerHTML = `
+      <section class="state-screen">
+        <div class="state-card">
+          <div class="brand-mark">PX</div>
+          <h1>Renta PX</h1>
+          <p>${DashboardView.escapeHtml(message)}</p>
+          <button class="primary-button" id="retryButton">Reintentar</button>
+          ${error ? `<div class="error-detail">${DashboardView.escapeHtml(error.message || String(error))}</div>` : ""}
+        </div>
+      </section>
+    `;
+
+    document.getElementById("retryButton").addEventListener("click", start);
+  }
+
+  function getFriendlyError(error) {
+    if (!error) return "Ocurrió un error inesperado.";
+    if (error.status === 403 || error.status === 401) return "No tienes permisos para consultar este archivo.";
+    if (error.status === 404) return "No se encontró el archivo en SharePoint.";
+    if ((error.message || "").includes("No se pudo leer el Excel")) return "No se pudo leer el Excel.";
+    return error.friendlyMessage || "Ocurrió un error cargando el dashboard.";
+  }
+
+  function validateConfig() {
+    if (typeof APP_CONFIG === "undefined") {
+      throw new Error("No existe js/config.js.");
+    }
+
+    if (APP_CONFIG.msal.clientId.includes("REEMPLAZAR") || APP_CONFIG.msal.tenantId.includes("REEMPLAZAR")) {
+      throw new Error("Configura clientId y tenantId en js/config.js antes de iniciar sesión.");
+    }
+  }
+
+  function validateExpectedReading(rows) {
+    const metrics = DashboardView.getMetrics(rows);
+    const typeCounts = rows.reduce((acc, row) => {
+      const key = ExcelService.comparableText(row.tipo);
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    console.info("Validación de lectura Renta PX", {
+      equipos: metrics.equipos,
+      portatiles: typeCounts.portatil || 0,
+      pc: typeCounts.pc || 0,
+      canonMensual: metrics.valorArriendo,
+      costoMensual: metrics.costoRenta,
+      utilidadMensual: metrics.utilidadRenta,
+      margen: metrics.margen,
+      clientes: metrics.clientes,
+      comerciales: metrics.comerciales
+    });
+  }
+})();
