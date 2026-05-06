@@ -225,8 +225,29 @@
 
     const worksheet = XLSX.utils.json_to_sheet(exportRows);
     worksheet["!cols"] = columns.map((column) => ({
-      wch: Math.max(14, column.label.length + 4)
+      wch: getColumnWidth(column)
     }));
+    worksheet["!autofilter"] = {
+      ref: XLSX.utils.encode_range({
+        s: { r: 0, c: 0 },
+        e: { r: exportRows.length, c: columns.length - 1 }
+      })
+    };
+    worksheet["!tables"] = [{
+      name: "TablaRentaPX",
+      ref: worksheet["!autofilter"].ref,
+      headerRow: true,
+      totalsRow: false,
+      style: {
+        theme: "TableStyleMedium2",
+        showFirstColumn: false,
+        showLastColumn: false,
+        showRowStripes: true,
+        showColumnStripes: false
+      }
+    }];
+    worksheet["!freeze"] = { xSplit: 0, ySplit: 1 };
+    applyWorksheetFormats(worksheet, columns, exportRows.length);
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Renta PX");
@@ -238,6 +259,69 @@
     if (column.type === "percent") return Number(value || 0);
     if (column.type === "currency") return Number(value || 0);
     return value || "";
+  }
+
+  function getColumnWidth(column) {
+    const widths = {
+      cliente: 30,
+      comercial: 26,
+      tipo: 16,
+      marca: 16,
+      modelo: 24,
+      serial: 24,
+      placa: 16,
+      fechaEntrega: 16,
+      valorArriendo: 18,
+      costoRenta: 18,
+      utilidadRenta: 18,
+      margen: 12
+    };
+
+    return widths[column.key] || Math.max(14, column.label.length + 4);
+  }
+
+  function applyWorksheetFormats(worksheet, columns, rowCount) {
+    columns.forEach((column, index) => {
+      const headerCell = XLSX.utils.encode_cell({ r: 0, c: index });
+      if (worksheet[headerCell]) {
+        worksheet[headerCell].s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "1A2B6B" } },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: getThinBorder()
+        };
+      }
+
+      for (let rowIndex = 1; rowIndex <= rowCount; rowIndex += 1) {
+        const cellAddress = XLSX.utils.encode_cell({ r: rowIndex, c: index });
+        const cell = worksheet[cellAddress];
+        if (!cell) continue;
+
+        cell.s = {
+          alignment: { vertical: "center" },
+          border: getThinBorder()
+        };
+
+        if (column.type === "currency") {
+          cell.t = "n";
+          cell.z = '"$"#,##0';
+        }
+
+        if (column.type === "percent") {
+          cell.t = "n";
+          cell.z = "0.0%";
+        }
+      }
+    });
+  }
+
+  function getThinBorder() {
+    return {
+      top: { style: "thin", color: { rgb: "D7E0F0" } },
+      right: { style: "thin", color: { rgb: "D7E0F0" } },
+      bottom: { style: "thin", color: { rgb: "D7E0F0" } },
+      left: { style: "thin", color: { rgb: "D7E0F0" } }
+    };
   }
 
   function getExportFileName() {
