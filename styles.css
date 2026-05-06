@@ -184,6 +184,36 @@ button {
   font-weight: 700;
 }
 
+.dataset-tabs {
+  display: inline-flex;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 5px;
+  border: 1px solid rgba(26, 43, 107, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--shadow);
+}
+
+.dataset-tab {
+  min-height: 38px;
+  padding: 0 18px;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  font-weight: 800;
+}
+
+.dataset-tab.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary), var(--purple));
+}
+
+.dataset-tab:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .dashboard-controls {
   display: flex;
   align-items: center;

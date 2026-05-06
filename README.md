@@ -49,6 +49,7 @@ Necesitas estos datos:
 - Hoja del Excel, por ejemplo `Hoja1`
 
 La app lee `sheetName` si existe; si no coincide, usa la primera hoja del archivo.
+Para Gerencia, `subRentSheetName` habilita una segunda vista llamada `Subrenta` usando otra hoja del mismo Excel, por ejemplo `PC COM`.
 
 ## Configurar `js/config.js`
 
@@ -69,7 +70,8 @@ const APP_CONFIG = {
       driveName: "Documents",
       driveNameAliases: ["Documentos", "Documentos compartidos"],
       filePath: "/Ruta/Archivo/Base.xlsx",
-      sheetName: "Hoja1"
+      sheetName: "Hoja1",
+      subRentSheetName: "PC COM"
     }
   }
 };

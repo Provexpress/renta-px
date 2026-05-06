@@ -12,7 +12,8 @@ const APP_CONFIG = {
       driveName: "Documentos",
       driveNameAliases: ["Documentos compartidos", "Documents"],
       filePath: "/Coordinador de servicios/Renta/RENTA_2024_T_1.xlsx",
-      sheetName: "PROVEXPRESS"
+      sheetName: "PROVEXPRESS",
+      subRentSheetName: "PC COM"
     }
   }
 };

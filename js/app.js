@@ -32,21 +32,37 @@
       }
 
       const arrayBuffer = await GraphService.downloadExcelFile();
-      const rawRows = ExcelService.readExcelArrayBuffer(arrayBuffer);
+      const rawRows = ExcelService.readExcelArrayBuffer(arrayBuffer, APP_CONFIG.graph.sharePointFile.sheetName);
       const rows = ExcelService.normalizeRows(rawRows);
       const scopedRows = PermissionService.getScopedRows(user, rows);
+      const subRentRows = getSubRentRows(user, arrayBuffer);
 
       if (!scopedRows.length && PermissionService.isCommercial(user)) {
         renderError("No hay registros asignados a este comercial.");
         return;
       }
 
-      DashboardView.renderDashboard({ profile, user, rows, scopedRows });
+      DashboardView.renderDashboard({ profile, user, rows, scopedRows, subRentRows });
       if (PermissionService.canViewGlobalDashboard(user)) {
         validateExpectedReading(rows);
       }
     } catch (error) {
       renderError(getFriendlyError(error), error);
+    }
+  }
+
+  function getSubRentRows(user, arrayBuffer) {
+    const sheetName = APP_CONFIG.graph.sharePointFile.subRentSheetName;
+    if (user.role !== "gerencia" || !sheetName) {
+      return [];
+    }
+
+    try {
+      const rawRows = ExcelService.readExcelArrayBuffer(arrayBuffer, sheetName);
+      return ExcelService.normalizeRows(rawRows);
+    } catch (error) {
+      console.warn("No se pudo leer la hoja de subrenta.", error);
+      return [];
     }
   }
 

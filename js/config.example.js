@@ -12,7 +12,8 @@ const APP_CONFIG = {
       driveName: "Documents",
       driveNameAliases: ["Documentos", "Documentos compartidos"],
       filePath: "/Ruta/Archivo/Base.xlsx",
-      sheetName: "Hoja1"
+      sheetName: "Hoja1",
+      subRentSheetName: "PC COM"
     }
   }
 };

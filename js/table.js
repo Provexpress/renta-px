@@ -6,13 +6,18 @@
     user: null,
     page: 1,
     sortKey: "cliente",
-    sortDirection: "asc"
+    sortDirection: "asc",
+    datasetLabel: "Renta"
   };
 
-  function renderTableShell(user) {
+  function renderTableShell(user, datasetLabel = "Renta") {
+    const title = PermissionService.isCommercial(user)
+      ? "Mi tabla de equipos"
+      : `Tabla de equipos - ${datasetLabel}`;
+
     return `
       <section class="panel">
-        <h2 class="panel-title">${PermissionService.isCommercial(user) ? "Mi tabla de equipos" : "Tabla de equipos"}</h2>
+        <h2 class="panel-title">${title}</h2>
         <div class="table-toolbar">
           <input id="tableSearch" type="search" placeholder="Buscar">
           <select id="clientFilter"><option value="">Cliente</option></select>
@@ -31,14 +36,15 @@
     `;
   }
 
-  function initTable(user, rows) {
+  function initTable(user, rows, options = {}) {
     state = {
       rows,
       filteredRows: rows,
       user,
       page: 1,
       sortKey: "cliente",
-      sortDirection: "asc"
+      sortDirection: "asc",
+      datasetLabel: options.datasetLabel || "Renta"
     };
 
     fillSelect("clientFilter", uniqueValues(rows, "cliente"));
@@ -239,7 +245,7 @@
   function buildStyledWorksheet(columns, rows) {
     const title = PermissionService.isCommercial(state.user)
       ? `Cartera comercial - ${state.user.comercial}`
-      : "Renta PX - Equipos filtrados";
+      : `${state.datasetLabel} Provexpress - Equipos en arriendo`;
     const generatedAt = new Date().toLocaleDateString("es-CO");
 
     const data = [

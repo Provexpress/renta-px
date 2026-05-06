@@ -1,29 +1,45 @@
 (function () {
   let chartInstances = [];
   let activeCommercialFilter = "";
+  let activeDataset = "renta";
 
-  function renderDashboard({ profile, user, rows, scopedRows }) {
+  function renderDashboard({ profile, user, rows, scopedRows, subRentRows = [] }) {
     destroyCharts();
-    const visibleRows = getVisibleRows(user, scopedRows);
+    const datasetRows = getDatasetRows(user, scopedRows, subRentRows);
+    const visibleRows = getVisibleRows(user, datasetRows);
 
     const app = document.getElementById("app");
     app.innerHTML = `
       <main class="dashboard-page">
         ${renderHeader(profile, user)}
         <p class="status-line">Datos cargados desde SharePoint</p>
-        ${renderDashboardControls(user, scopedRows, visibleRows)}
+        ${renderDatasetTabs(user, subRentRows)}
+        ${renderDashboardControls(user, datasetRows, visibleRows)}
         ${renderKpis(user, visibleRows)}
         <section class="content-grid">
           ${renderQualityPanel(visibleRows)}
           ${renderCharts(user)}
-          ${TableView.renderTableShell(user)}
+          ${TableView.renderTableShell(user, getDatasetLabel())}
         </section>
       </main>
     `;
 
-    bindDashboardEvents({ profile, user, rows, scopedRows });
+    bindDashboardEvents({ profile, user, rows, scopedRows, subRentRows });
     renderChartInstances(user, visibleRows);
-    TableView.initTable(user, visibleRows);
+    TableView.initTable(user, visibleRows, { datasetLabel: getDatasetLabel() });
+  }
+
+  function renderDatasetTabs(user, subRentRows) {
+    if (user.role !== "gerencia") {
+      return "";
+    }
+
+    return `
+      <nav class="dataset-tabs" aria-label="Vistas de arriendo">
+        <button class="dataset-tab ${activeDataset === "renta" ? "active" : ""}" type="button" data-dataset="renta">Renta</button>
+        <button class="dataset-tab ${activeDataset === "subrenta" ? "active" : ""}" type="button" data-dataset="subrenta"${subRentRows.length ? "" : " disabled"}>Subrenta</button>
+      </nav>
+    `;
   }
 
   function renderHeader(profile, user) {
@@ -93,6 +109,26 @@
         renderDashboard(context);
       });
     }
+
+    document.querySelectorAll("[data-dataset]").forEach((button) => {
+      button.addEventListener("click", () => {
+        activeDataset = button.getAttribute("data-dataset");
+        activeCommercialFilter = "";
+        renderDashboard(context);
+      });
+    });
+  }
+
+  function getDatasetRows(user, scopedRows, subRentRows) {
+    if (user.role === "gerencia" && activeDataset === "subrenta") {
+      return subRentRows;
+    }
+
+    return scopedRows;
+  }
+
+  function getDatasetLabel() {
+    return activeDataset === "subrenta" ? "Subrenta" : "Renta";
   }
 
   function getVisibleRows(user, rows) {

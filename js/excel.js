@@ -36,17 +36,19 @@
 
   const ACCESSORY_KEYS = ["office", "morral", "guaya", "mouse", "teclado", "monitor"];
 
-  function readExcelArrayBuffer(arrayBuffer) {
+  function readExcelArrayBuffer(arrayBuffer, requestedSheetName) {
     try {
       const workbook = XLSX.read(arrayBuffer, {
         type: "array",
         cellDates: true,
         raw: true
       });
-      const configuredSheet = APP_CONFIG.graph.sharePointFile.sheetName;
-      const sheetName = configuredSheet && workbook.SheetNames.includes(configuredSheet)
-        ? configuredSheet
-        : workbook.SheetNames[0];
+      const configuredSheet = requestedSheetName || APP_CONFIG.graph.sharePointFile.sheetName;
+      if (configuredSheet && !workbook.SheetNames.includes(configuredSheet)) {
+        throw new Error(`No se encontró la hoja "${configuredSheet}" en el Excel.`);
+      }
+
+      const sheetName = configuredSheet || workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
 
       if (!sheet) {
