@@ -24,6 +24,7 @@
             <option value="warning">Advertencia</option>
             <option value="error">Error</option>
           </select>
+          <button class="primary-button table-export-button" id="exportTableButton" type="button">Exportar Excel</button>
         </div>
         <div id="tableContainer"></div>
       </section>
@@ -44,6 +45,7 @@
     fillSelect("brandFilter", uniqueValues(rows, "marca"));
     fillSelect("typeFilter", uniqueValues(rows, "tipo"));
     bindFilters();
+    bindExport();
     applyFilters();
   }
 
@@ -54,6 +56,10 @@
         applyFilters();
       });
     });
+  }
+
+  function bindExport() {
+    document.getElementById("exportTableButton").addEventListener("click", exportFilteredRows);
   }
 
   function applyFilters() {
@@ -204,6 +210,40 @@
     if (column.type === "percent") return DashboardView.formatPercent(value);
     if (column.type === "status") return statusBadge(value);
     return DashboardView.escapeHtml(value || "");
+  }
+
+  function exportFilteredRows() {
+    if (!state.filteredRows.length) return;
+
+    const columns = getColumns(state.user).filter((column) => column.type !== "status");
+    const exportRows = state.filteredRows.map((row) => {
+      return columns.reduce((record, column) => {
+        record[column.label] = formatExportValue(row, column);
+        return record;
+      }, {});
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    worksheet["!cols"] = columns.map((column) => ({
+      wch: Math.max(14, column.label.length + 4)
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Renta PX");
+    XLSX.writeFile(workbook, getExportFileName());
+  }
+
+  function formatExportValue(row, column) {
+    const value = row[column.key];
+    if (column.type === "percent") return Number(value || 0);
+    if (column.type === "currency") return Number(value || 0);
+    return value || "";
+  }
+
+  function getExportFileName() {
+    const date = new Date().toISOString().slice(0, 10);
+    const role = state.user.role === "comercial" ? ExcelService.comparableText(state.user.comercial).replace(/\s+/g, "-") : state.user.role;
+    return `renta-px-${role}-${date}.xlsx`;
   }
 
   function statusBadge(status) {

@@ -342,7 +342,7 @@ button {
 
 .table-toolbar {
   display: grid;
-  grid-template-columns: 1.5fr repeat(4, minmax(130px, 1fr));
+  grid-template-columns: 1.5fr repeat(4, minmax(130px, 1fr)) minmax(150px, auto);
   gap: 10px;
   margin-bottom: 14px;
 }
@@ -356,6 +356,11 @@ button {
   padding: 0 10px;
   background: rgba(250, 252, 255, 0.92);
   color: var(--text);
+}
+
+.table-export-button {
+  width: 100%;
+  min-width: 150px;
 }
 
 .table-toolbar input:focus,
