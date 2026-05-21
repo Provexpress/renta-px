@@ -67,7 +67,64 @@
     }
   }
 
+  function escapeStateText(value) {
+    if (window.DashboardView && typeof DashboardView.escapeHtml === "function") {
+      return DashboardView.escapeHtml(value || "");
+    }
+
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function renderStateScreen({ eyebrow = "Acceso corporativo", title = "Renta PX", message, actionLabel = "", actionId = "", detail = "", loading = false }) {
+    app.innerHTML = `
+      <section class="state-screen state-screen-auth">
+        <div class="state-card state-card-split">
+          <div class="state-brand-panel">
+            <img class="state-brand-logo" src="assets/provex_icon_192.png" alt="Provexpress">
+            <span class="state-chip">Renta PX</span>
+            <h2>Renta y subrenta en una vista segura.</h2>
+            <p>Consulta indicadores comerciales desde una sesion corporativa autorizada.</p>
+            <div class="state-feature-row"><span class="state-feature-dot"></span>Dashboard por rol y alcance comercial.</div>
+            <div class="state-feature-row"><span class="state-feature-dot purple"></span>Datos leidos desde SharePoint con Microsoft Graph.</div>
+          </div>
+          <div class="state-action-panel">
+            <img class="brand-mark" src="assets/provex_icon_64.png" alt="">
+            <p class="eyebrow">${escapeStateText(eyebrow)}</p>
+            <h1>${escapeStateText(title)}</h1>
+            <p>${escapeStateText(message)}</p>
+            ${loading ? `<div class="state-loader"><span></span></div>` : ""}
+            ${actionLabel && actionId ? `<button class="primary-button" id="${actionId}">${escapeStateText(actionLabel)}</button>` : ""}
+            ${detail ? `<div class="error-detail">${escapeStateText(detail)}</div>` : ""}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
   function renderLogin() {
+    renderStateScreen({
+      title: "Ingresar a Renta PX",
+      message: "Usa tu cuenta Microsoft 365 para consultar la informacion de renta.",
+      actionLabel: "Continuar con Microsoft 365",
+      actionId: "loginButton"
+    });
+
+    document.getElementById("loginButton").addEventListener("click", async () => {
+      try {
+        renderLoading("Autenticando...");
+        await AuthService.login();
+        await loadDashboard();
+      } catch (error) {
+        renderError(getFriendlyError(error), error);
+      }
+    });
+    return;
+
     app.innerHTML = `
       <section class="state-screen">
         <div class="state-card">
@@ -91,6 +148,14 @@
   }
 
   function renderLoading(message) {
+    renderStateScreen({
+      eyebrow: "Validando acceso",
+      title: "Renta PX",
+      message,
+      loading: true
+    });
+    return;
+
     app.innerHTML = `
       <section class="state-screen">
         <div class="state-card">
@@ -104,6 +169,18 @@
 
   function renderError(message, error) {
     const detail = getErrorDetail(error);
+    renderStateScreen({
+      eyebrow: "Acceso no completado",
+      title: "Renta PX",
+      message,
+      actionLabel: "Reintentar",
+      actionId: "retryButton",
+      detail
+    });
+
+    document.getElementById("retryButton").addEventListener("click", start);
+    return;
+
     app.innerHTML = `
       <section class="state-screen">
         <div class="state-card">
