@@ -53,7 +53,7 @@
         <div class="brand-row">
           <img class="brand-mark" src="assets/provex_icon_64.png" alt="Provexpress">
           <div>
-            <p class="eyebrow">Provex One</p>
+            <p class="eyebrow">Provexpress</p>
             <h1 class="brand-title">Renta PX</h1>
             <p class="brand-subtitle">Dashboard de Arriendos</p>
           </div>
