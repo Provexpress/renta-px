@@ -263,11 +263,26 @@
   function exportFilteredRows() {
     if (!state.filteredRows.length) return;
 
-    const columns = getExportColumns();
+    const columns = getCompactExportColumns(getExportColumns(), state.filteredRows);
     const worksheet = buildStyledWorksheet(columns, state.filteredRows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Renta PX");
     XLSX.writeFile(workbook, getExportFileName());
+  }
+
+  function getCompactExportColumns(columns, rows) {
+    const compactColumns = columns.filter((column) => hasExportColumnData(column, rows));
+    return compactColumns.length ? compactColumns : columns;
+  }
+
+  function hasExportColumnData(column, rows) {
+    return rows.some((row) => isMeaningfulExportValue(getExportValue(row, column)));
+  }
+
+  function isMeaningfulExportValue(value) {
+    if (value === null || value === undefined) return false;
+    if (typeof value === "number") return true;
+    return !["", "no"].includes(ExcelService.comparableText(value));
   }
 
   function getExportColumns() {
