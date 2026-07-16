@@ -12,6 +12,19 @@
     { key: "monitor", label: "Monitor" },
     { key: "accesorios", label: "Accesorios" }
   ];
+  const ACCESSORIES_COLUMNS = [
+    { key: "tipo", label: "Tipo" },
+    { key: "marca", label: "Marca" },
+    { key: "modelo", label: "Modelo" },
+    { key: "serial", label: "Serial" },
+    { key: "placa", label: "Placa" },
+    { key: "comercial", label: "Comercial" },
+    { key: "cliente", label: "Cliente" },
+    { key: "valorArriendo", label: "Valor arriendo", type: "currency" },
+    { key: "costoRenta", label: "Costo de renta", type: "currency" },
+    { key: "utilidadRenta", label: "Utilidad de renta", type: "currency" },
+    { key: "margen", label: "Margen", type: "percent" }
+  ];
   let state = {
     rows: [],
     filteredRows: [],
@@ -19,7 +32,8 @@
     page: 1,
     sortKey: "cliente",
     sortDirection: "asc",
-    datasetLabel: "Renta"
+    datasetLabel: "Renta",
+    datasetKey: "renta"
   };
 
   function renderTableShell(user, datasetLabel = "Renta") {
@@ -56,7 +70,8 @@
       page: 1,
       sortKey: "cliente",
       sortDirection: "asc",
-      datasetLabel: options.datasetLabel || "Renta"
+      datasetLabel: options.datasetLabel || "Renta",
+      datasetKey: options.datasetKey || "renta"
     };
 
     fillSelect("clientFilter", uniqueValues(rows, "cliente"));
@@ -202,6 +217,10 @@
   }
 
   function getColumns(user) {
+    if (state.datasetKey === "accesorios") {
+      return ACCESSORIES_COLUMNS;
+    }
+
     const columns = [
       { key: "cliente", label: "Cliente" }
     ];
@@ -244,11 +263,19 @@
   function exportFilteredRows() {
     if (!state.filteredRows.length) return;
 
-    const columns = getCommercialExportColumns();
+    const columns = getExportColumns();
     const worksheet = buildStyledWorksheet(columns, state.filteredRows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Renta PX");
     XLSX.writeFile(workbook, getExportFileName());
+  }
+
+  function getExportColumns() {
+    if (state.datasetKey === "accesorios") {
+      return ACCESSORIES_COLUMNS;
+    }
+
+    return getCommercialExportColumns();
   }
 
   function getCommercialExportColumns() {
@@ -374,7 +401,10 @@
       monitor: 12,
       accesorios: 24,
       fechaEntrega: 16,
-      valorArriendo: 18
+      valorArriendo: 18,
+      costoRenta: 18,
+      utilidadRenta: 18,
+      margen: 12
     };
     return widths[column.key] || 16;
   }

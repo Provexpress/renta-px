@@ -27,7 +27,7 @@
 
     bindDashboardEvents({ profile, user, rows, scopedRows, subRentRows, accessoriesRows });
     renderChartInstances(user, visibleRows);
-    TableView.initTable(user, visibleRows, { datasetLabel: getDatasetLabel() });
+    TableView.initTable(user, visibleRows, { datasetLabel: getDatasetLabel(), datasetKey: activeDataset });
   }
 
   function renderDatasetTabs(user, scopedRows, subRentRows, accessoriesRows) {
