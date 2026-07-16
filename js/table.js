@@ -12,6 +12,14 @@
     { key: "monitor", label: "Monitor" },
     { key: "accesorios", label: "Accesorios" }
   ];
+  const ACCESSORY_EXPORT_ITEMS = [
+    { key: "office", label: "Office" },
+    { key: "morral", label: "Morral" },
+    { key: "guaya", label: "Guaya" },
+    { key: "mouse", label: "Mouse" },
+    { key: "teclado", label: "Teclado" },
+    { key: "monitor", label: "Monitor" }
+  ];
   const ACCESSORIES_COLUMNS = [
     { key: "tipo", label: "Tipo" },
     { key: "marca", label: "Marca" },
@@ -302,7 +310,10 @@
       { key: "modelo", label: "Modelo" },
       { key: "serial", label: "Serial" },
       { key: "placa", label: "Placa" },
-      ...INVENTORY_COLUMNS,
+      { key: "memoria", label: "Memoria" },
+      { key: "tamanoDisco", label: "Tamaño disco" },
+      { key: "garantia", label: "Garantía" },
+      { key: "accessorySummary", label: "Accesorios", getValue: getAccessorySummary },
       { key: "fechaEntrega", label: "Fecha entrega" },
       { key: "valorArriendo", label: "Valor arriendo", type: "currency" }
     ];
@@ -339,11 +350,29 @@
   }
 
   function getExportValue(row, column) {
+    if (typeof column.getValue === "function") {
+      return column.getValue(row);
+    }
+
     if (column.type === "currency") {
       return Number(row[column.key]) || 0;
     }
 
     return row[column.key] || "";
+  }
+
+  function getAccessorySummary(row) {
+    const items = ACCESSORY_EXPORT_ITEMS
+      .filter((item) => ExcelService.comparableText(row[item.key]) === "si")
+      .map((item) => item.label);
+    const extra = row.accesorios || "";
+    const extraKey = ExcelService.comparableText(extra);
+
+    if (extraKey && !["si", "no"].includes(extraKey) && !items.includes(extra)) {
+      items.push(extra);
+    }
+
+    return items.join(", ");
   }
 
   function getCleanExportValue(row, column) {
@@ -421,6 +450,7 @@
       teclado: 12,
       monitor: 12,
       accesorios: 24,
+      accessorySummary: 28,
       fechaEntrega: 16,
       valorArriendo: 18,
       costoRenta: 18,
