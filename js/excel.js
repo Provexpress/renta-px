@@ -68,8 +68,17 @@
 
   function normalizeRows(rows) {
     return rows
-      .map((row, index) => normalizeRow(row, index))
-      .filter((row) => Object.values(row).some((value) => value !== "" && value !== null && value !== undefined));
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => hasExcelData(row))
+      .map(({ row, index }) => normalizeRow(row, index));
+  }
+
+  function hasExcelData(row) {
+    return Object.values(row).some((value) => {
+      if (value === null || value === undefined) return false;
+      if (value instanceof Date) return !Number.isNaN(value.getTime());
+      return normalizeText(value) !== "";
+    });
   }
 
   function normalizeRow(source, index) {
