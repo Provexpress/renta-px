@@ -3,10 +3,10 @@
   let activeCommercialFilter = "";
   let activeDataset = "renta";
 
-  function renderDashboard({ profile, user, rows, scopedRows, subRentRows = [] }) {
+  function renderDashboard({ profile, user, rows, scopedRows, subRentRows = [], accessoriesRows = [] }) {
     destroyCharts();
-    normalizeActiveDataset(user, scopedRows, subRentRows);
-    const datasetRows = getDatasetRows(user, scopedRows, subRentRows);
+    normalizeActiveDataset(user, scopedRows, subRentRows, accessoriesRows);
+    const datasetRows = getDatasetRows(user, scopedRows, subRentRows, accessoriesRows);
     const visibleRows = getVisibleRows(user, datasetRows);
 
     const app = document.getElementById("app");
@@ -14,7 +14,7 @@
       <main class="dashboard-page">
         ${renderHeader(profile, user)}
         <p class="status-line">Datos cargados desde SharePoint</p>
-        ${renderDatasetTabs(user, subRentRows)}
+        ${renderDatasetTabs(user, scopedRows, subRentRows, accessoriesRows)}
         ${renderDashboardControls(user, datasetRows, visibleRows)}
         ${renderKpis(user, visibleRows)}
         <section class="content-grid">
@@ -25,20 +25,22 @@
       </main>
     `;
 
-    bindDashboardEvents({ profile, user, rows, scopedRows, subRentRows });
+    bindDashboardEvents({ profile, user, rows, scopedRows, subRentRows, accessoriesRows });
     renderChartInstances(user, visibleRows);
     TableView.initTable(user, visibleRows, { datasetLabel: getDatasetLabel() });
   }
 
-  function renderDatasetTabs(user, subRentRows) {
-    if (!canUseDatasetTabs(user, subRentRows)) {
+  function renderDatasetTabs(user, scopedRows, subRentRows, accessoriesRows) {
+    const datasets = getAvailableDatasets(user, scopedRows, subRentRows, accessoriesRows);
+    if (datasets.length < 2) {
       return "";
     }
 
     return `
       <nav class="dataset-tabs" aria-label="Vistas de arriendo">
-        <button class="dataset-tab ${activeDataset === "renta" ? "active" : ""}" type="button" data-dataset="renta">Renta</button>
-        <button class="dataset-tab ${activeDataset === "subrenta" ? "active" : ""}" type="button" data-dataset="subrenta">Subrenta</button>
+        ${datasets.map((dataset) => `
+          <button class="dataset-tab ${activeDataset === dataset.key ? "active" : ""}" type="button" data-dataset="${dataset.key}">${dataset.label}</button>
+        `).join("")}
       </nav>
     `;
   }
@@ -120,30 +122,52 @@
     });
   }
 
-  function getDatasetRows(user, scopedRows, subRentRows) {
+  function getDatasetRows(user, scopedRows, subRentRows, accessoriesRows) {
     if (PermissionService.canViewSubRent(user) && activeDataset === "subrenta") {
       return subRentRows;
+    }
+
+    if (PermissionService.canViewAccessories(user) && activeDataset === "accesorios") {
+      return accessoriesRows;
     }
 
     return scopedRows;
   }
 
-  function canUseDatasetTabs(user, subRentRows) {
-    return (user.role === "gerencia" || PermissionService.isCommercial(user)) && subRentRows.length > 0;
-  }
+  function getAvailableDatasets(user, scopedRows, subRentRows, accessoriesRows) {
+    const datasets = [{ key: "renta", label: "Renta" }];
 
-  function normalizeActiveDataset(user, scopedRows, subRentRows) {
-    if (activeDataset === "subrenta" && !PermissionService.canViewSubRent(user)) {
-      activeDataset = "renta";
+    if (PermissionService.canViewSubRent(user) && subRentRows.length > 0) {
+      datasets.push({ key: "subrenta", label: "Subrenta" });
     }
 
-    if (PermissionService.isCommercial(user) && !scopedRows.length && subRentRows.length) {
-      activeDataset = "subrenta";
+    if (PermissionService.canViewAccessories(user) && accessoriesRows.length > 0) {
+      datasets.push({ key: "accesorios", label: "Accesorios" });
+    }
+
+    if (PermissionService.isCommercial(user) && !scopedRows.length) {
+      return datasets.filter((dataset) => dataset.key !== "renta");
+    }
+
+    return datasets;
+  }
+
+  function normalizeActiveDataset(user, scopedRows, subRentRows, accessoriesRows) {
+    const datasets = getAvailableDatasets(user, scopedRows, subRentRows, accessoriesRows);
+    const datasetKeys = datasets.map((dataset) => dataset.key);
+
+    if (!datasetKeys.includes(activeDataset)) {
+      activeDataset = datasetKeys[0] || "renta";
     }
   }
 
   function getDatasetLabel() {
-    return activeDataset === "subrenta" ? "Subrenta" : "Renta";
+    const labels = {
+      renta: "Renta",
+      subrenta: "Subrenta",
+      accesorios: "Accesorios"
+    };
+    return labels[activeDataset] || labels.renta;
   }
 
   function getVisibleRows(user, rows) {

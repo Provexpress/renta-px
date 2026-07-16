@@ -36,13 +36,14 @@
       const rows = ExcelService.normalizeRows(rawRows);
       const scopedRows = PermissionService.getScopedRows(user, rows);
       const subRentRows = getSubRentRows(user, arrayBuffer);
+      const accessoriesRows = getAccessoriesRows(user, arrayBuffer);
 
-      if (!scopedRows.length && !subRentRows.length && PermissionService.isCommercial(user)) {
+      if (!scopedRows.length && !subRentRows.length && !accessoriesRows.length && PermissionService.isCommercial(user)) {
         renderError("No hay registros asignados a este comercial.");
         return;
       }
 
-      DashboardView.renderDashboard({ profile, user, rows, scopedRows, subRentRows });
+      DashboardView.renderDashboard({ profile, user, rows, scopedRows, subRentRows, accessoriesRows });
       if (PermissionService.canViewGlobalDashboard(user)) {
         validateExpectedReading(rows);
       }
@@ -67,6 +68,22 @@
     }
   }
 
+  function getAccessoriesRows(user, arrayBuffer) {
+    const sheetName = APP_CONFIG.graph.sharePointFile.accessoriesSheetName;
+    if (!PermissionService.canViewAccessories(user) || !sheetName) {
+      return [];
+    }
+
+    try {
+      const rawRows = ExcelService.readExcelArrayBuffer(arrayBuffer, sheetName);
+      const rows = ExcelService.normalizeRows(rawRows);
+      return PermissionService.getScopedRows(user, rows);
+    } catch (error) {
+      console.warn("No se pudo leer la hoja de accesorios.", error);
+      return [];
+    }
+  }
+
   function escapeStateText(value) {
     if (window.DashboardView && typeof DashboardView.escapeHtml === "function") {
       return DashboardView.escapeHtml(value || "");
@@ -87,7 +104,7 @@
           <div class="state-brand-panel">
             <img class="state-brand-logo" src="assets/provex_icon_192.png" alt="Provexpress">
             <span class="state-chip">Renta PX</span>
-            <h2>Renta y subrenta en una vista segura.</h2>
+            <h2>Renta, subrenta y accesorios en una vista segura.</h2>
             <p>Consulta indicadores comerciales desde una sesion corporativa autorizada.</p>
             <div class="state-feature-row"><span class="state-feature-dot"></span>Dashboard por rol y alcance comercial.</div>
             <div class="state-feature-row"><span class="state-feature-dot purple"></span>Datos leidos desde SharePoint con Microsoft Graph.</div>

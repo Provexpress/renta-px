@@ -44,12 +44,13 @@
         raw: true
       });
       const configuredSheet = requestedSheetName || APP_CONFIG.graph.sharePointFile.sheetName;
-      if (configuredSheet && !workbook.SheetNames.includes(configuredSheet)) {
+      const sheetName = getWorkbookSheetName(workbook, configuredSheet);
+      if (configuredSheet && !sheetName) {
         throw new Error(`No se encontró la hoja "${configuredSheet}" en el Excel.`);
       }
 
-      const sheetName = configuredSheet || workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
+      const selectedSheetName = sheetName || workbook.SheetNames[0];
+      const sheet = workbook.Sheets[selectedSheetName];
 
       if (!sheet) {
         throw new Error("No se encontró una hoja legible en el Excel.");
@@ -64,6 +65,14 @@
       readError.cause = error;
       throw readError;
     }
+  }
+
+  function getWorkbookSheetName(workbook, sheetName) {
+    if (!sheetName) return "";
+    if (workbook.SheetNames.includes(sheetName)) return sheetName;
+
+    const requestedName = comparableText(sheetName);
+    return workbook.SheetNames.find((name) => comparableText(name) === requestedName) || "";
   }
 
   function normalizeRows(rows) {

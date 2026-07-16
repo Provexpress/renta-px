@@ -175,6 +175,10 @@ const USER_ACCESS = {
     return user.role === "gerencia" || Boolean(user.subRenta);
   }
 
+  function canViewAccessories(user) {
+    return canViewSubRent(user);
+  }
+
   function getScopedRows(user, rows) {
     if (user.role === "comercial") {
       const aliases = user.comercialAliases || [user.comercial];
@@ -193,6 +197,7 @@ const USER_ACCESS = {
     canViewCommercialRanking,
     canViewGlobalDashboard,
     canViewSubRent,
+    canViewAccessories,
     getScopedRows
   };
 })();
