@@ -276,7 +276,7 @@
   }
 
   function hasExportColumnData(column, rows) {
-    return rows.some((row) => isMeaningfulExportValue(getExportValue(row, column)));
+    return rows.some((row) => isMeaningfulExportValue(getCleanExportValue(row, column)));
   }
 
   function isMeaningfulExportValue(value) {
@@ -319,7 +319,7 @@
       [`Generado: ${generatedAt} | Registros: ${rows.length}`],
       [],
       columns.map((column) => column.label),
-      ...rows.map((row) => columns.map((column) => getExportValue(row, column)))
+      ...rows.map((row) => columns.map((column) => getCleanExportValue(row, column)))
     ];
     const worksheet = XLSX.utils.aoa_to_sheet(data);
     const lastColumn = columns.length - 1;
@@ -344,6 +344,12 @@
     }
 
     return row[column.key] || "";
+  }
+
+  function getCleanExportValue(row, column) {
+    const value = getExportValue(row, column);
+    if (typeof value === "number") return value;
+    return ExcelService.comparableText(value) === "no" ? "" : value;
   }
 
   function styleExportWorksheet(worksheet, columns, rowCount) {
