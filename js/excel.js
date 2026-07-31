@@ -79,15 +79,49 @@
     return rows
       .map((row, index) => ({ row, index }))
       .filter(({ row }) => hasExcelData(row))
-      .map(({ row, index }) => normalizeRow(row, index));
+      .map(({ row, index }) => normalizeRow(row, index))
+      .filter((row) => hasRealInformation(row));
   }
 
   function hasExcelData(row) {
-    return Object.values(row).some((value) => {
+    return Object.entries(row).some(([key, value]) => {
+      if (key.startsWith("__EMPTY") && (value === null || value === undefined || normalizeText(value) === "")) {
+        return false;
+      }
       if (value === null || value === undefined) return false;
       if (value instanceof Date) return !Number.isNaN(value.getTime());
       return normalizeText(value) !== "";
     });
+  }
+
+  function hasRealInformation(row) {
+    const mainFields = [
+      row.cliente,
+      row.comercial,
+      row.serial,
+      row.placa,
+      row.tipo,
+      row.marca,
+      row.modelo,
+      row.procesador,
+      row.accesorios
+    ];
+
+    const hasIdentifyingText = mainFields.some((text) => {
+      const normalized = normalizeText(text);
+      if (!normalized) return false;
+      const lower = comparableText(normalized);
+      if (lower.startsWith("total") || lower === "grand total" || lower === "suma") {
+        return false;
+      }
+      return true;
+    });
+
+    if (hasIdentifyingText) {
+      return true;
+    }
+
+    return Boolean(row.valorArriendo > 0 || row.costoRenta > 0 || row.utilidadRenta > 0);
   }
 
   function normalizeRow(source, index) {
@@ -260,6 +294,7 @@
     parseExcelDate,
     calculateMargin,
     validateRow,
-    getDataQualityStatus
+    getDataQualityStatus,
+    hasRealInformation
   };
 })();
