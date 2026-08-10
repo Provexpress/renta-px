@@ -176,7 +176,7 @@ const USER_ACCESS = {
   }
 
   function canViewAccessories(user) {
-    return canViewSubRent(user);
+    return user.role === "gerencia" || isCommercial(user);
   }
 
   function getScopedRows(user, rows) {
