@@ -2,19 +2,30 @@
   const COLUMN_ALIASES = {
     tipo: "tipo",
     marca: "marca",
+    marc: "marca",
     modelo: "modelo",
     serial: "serial",
     placa: "placa",
     procesador: "procesador",
+    procesado: "procesador",
+    proc: "procesador",
+    cpu: "procesador",
     memoria: "memoria",
     memoriagb: "memoria",
+    memoriaengb: "memoria",
+    ram: "memoria",
+    ramgb: "memoria",
     tamanodisco: "tamanoDisco",
     tamanodedisco: "tamanoDisco",
     tamanodiscogb: "tamanoDisco",
     tamanodediscogb: "tamanoDisco",
+    tamanodiscoengb: "tamanoDisco",
     discoduro: "tamanoDisco",
     discodurogb: "tamanoDisco",
     disco: "tamanoDisco",
+    discogb: "tamanoDisco",
+    almacenamiento: "tamanoDisco",
+    almacenamientogb: "tamanoDisco",
     garantia: "garantia",
     office: "office",
     morral: "morral",
@@ -41,10 +52,14 @@
     valorrentacliente: "valorRentaCliente",
     valorrenta: "valorRentaCliente",
     valorarriendoacliente: "valorRentaCliente",
+    valorarriendocliente: "valorRentaCliente",
     rentacliente: "valorRentaCliente",
+    rentaacliente: "valorRentaCliente",
     canoncliente: "valorRentaCliente",
+    canonacliente: "valorRentaCliente",
     preciorenta: "valorRentaCliente",
-    preciocliente: "valorRentaCliente"
+    preciocliente: "valorRentaCliente",
+    preciodecliente: "valorRentaCliente"
   };
 
   const ACCESSORY_KEYS = ["office", "morral", "guaya", "mouse", "teclado", "monitor"];
@@ -65,15 +80,72 @@
         throw new Error(`No se encontró la hoja "${selectedSheetName}" en el Excel.`);
       }
 
-      return XLSX.utils.sheet_to_json(sheet, {
+      // Obtener matriz bidimensional de celdas para encontrar dinámicamente la fila de encabezados
+      const rawRowsAoa = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
         defval: "",
-        raw: true
+        raw: true,
+        blankrows: false
       });
+
+      if (!rawRowsAoa || !rawRowsAoa.length) {
+        return [];
+      }
+
+      const headerRowIndex = findHeaderRowIndex(rawRowsAoa);
+      const headerRow = rawRowsAoa[headerRowIndex] || [];
+      const dataRows = rawRowsAoa.slice(headerRowIndex + 1);
+
+      return dataRows
+        .filter((rowArr) => Array.isArray(rowArr) && rowArr.some((cell) => cell !== null && cell !== undefined && String(cell).trim() !== ""))
+        .map((rowArr) => {
+          const rowObj = {};
+          headerRow.forEach((colName, colIdx) => {
+            const rawColName = String(colName || "").trim();
+            if (rawColName) {
+              rowObj[rawColName] = rowArr[colIdx] !== undefined ? rowArr[colIdx] : "";
+            } else if (rowArr[colIdx] !== undefined && rowArr[colIdx] !== "") {
+              rowObj[`__EMPTY_${colIdx}`] = rowArr[colIdx];
+            }
+          });
+          return rowObj;
+        });
     } catch (error) {
       const readError = new Error("No se pudo leer el Excel.");
       readError.cause = error;
       throw readError;
     }
+  }
+
+  function findHeaderRowIndex(rowsAoa) {
+    const knownHeaderTokens = [
+      "tipo", "marca", "marc", "modelo", "serial", "placa", "procesador",
+      "memoria", "disco", "tamano", "cliente", "comercial", "canon", "valor",
+      "renta", "arriendo", "costo", "utilidad", "garantia", "fecha"
+    ];
+
+    let bestIndex = 0;
+    let maxMatches = 0;
+
+    for (let i = 0; i < Math.min(rowsAoa.length, 30); i++) {
+      const row = rowsAoa[i];
+      if (!Array.isArray(row)) continue;
+
+      let matchCount = 0;
+      row.forEach((cell) => {
+        const text = comparableText(cell);
+        if (text && knownHeaderTokens.some((token) => text.includes(token))) {
+          matchCount += 1;
+        }
+      });
+
+      if (matchCount > maxMatches && matchCount >= 2) {
+        maxMatches = matchCount;
+        bestIndex = i;
+      }
+    }
+
+    return bestIndex;
   }
 
   function getWorkbookSheetName(workbook, sheetName) {
