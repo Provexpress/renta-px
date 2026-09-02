@@ -160,7 +160,7 @@
       }
     }
 
-    if (PermissionService.canViewAvailableInventory(user) && availableInventoryRows.length > 0) {
+    if (PermissionService.canViewAvailableInventory(user) && APP_CONFIG.graph && APP_CONFIG.graph.availableInventoryFile) {
       datasets.push({ key: "disponible", label: "Disponible para Rentar" });
     }
 

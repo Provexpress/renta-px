@@ -56,17 +56,13 @@
         cellDates: true,
         raw: true
       });
-      const configuredSheet = requestedSheetName || APP_CONFIG.graph.sharePointFile.sheetName;
-      const sheetName = getWorkbookSheetName(workbook, configuredSheet);
-      if (configuredSheet && !sheetName) {
-        throw new Error(`No se encontró la hoja "${configuredSheet}" en el Excel.`);
-      }
+      const configuredSheet = requestedSheetName || (APP_CONFIG.graph && APP_CONFIG.graph.sharePointFile && APP_CONFIG.graph.sharePointFile.sheetName);
+      const selectedSheetName = getWorkbookSheetName(workbook, configuredSheet) || workbook.SheetNames[0];
 
-      const selectedSheetName = sheetName || workbook.SheetNames[0];
       const sheet = workbook.Sheets[selectedSheetName];
 
       if (!sheet) {
-        throw new Error("No se encontró una hoja legible en el Excel.");
+        throw new Error(`No se encontró la hoja "${selectedSheetName}" en el Excel.`);
       }
 
       return XLSX.utils.sheet_to_json(sheet, {
@@ -81,11 +77,20 @@
   }
 
   function getWorkbookSheetName(workbook, sheetName) {
-    if (!sheetName) return "";
+    if (!sheetName) return workbook.SheetNames[0] || "";
     if (workbook.SheetNames.includes(sheetName)) return sheetName;
 
     const requestedName = comparableText(sheetName);
-    return workbook.SheetNames.find((name) => comparableText(name) === requestedName) || "";
+    const exact = workbook.SheetNames.find((name) => comparableText(name) === requestedName);
+    if (exact) return exact;
+
+    const partial = workbook.SheetNames.find((name) => {
+      const c = comparableText(name);
+      return c.includes(requestedName) || requestedName.includes(c);
+    });
+    if (partial) return partial;
+
+    return workbook.SheetNames[0] || "";
   }
 
   function normalizeRows(rows) {

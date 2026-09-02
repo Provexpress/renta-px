@@ -70,37 +70,93 @@
   }
 
   async function getFileItem(siteId, driveId, fileConfig = APP_CONFIG.graph.sharePointFile) {
+    // 1. Intentar directamente por itemId / GUID si está disponible
+    if (fileConfig.itemId) {
+      try {
+        const item = await graphFetch(`/sites/${siteId}/drives/${driveId}/items/${fileConfig.itemId}`);
+        if (item && item.id) return item;
+      } catch (err) {
+        try {
+          const item = await graphFetch(`/sites/${siteId}/drive/items/${fileConfig.itemId}`);
+          if (item && item.id) {
+            item._driveId = item.parentReference && item.parentReference.driveId;
+            return item;
+          }
+        } catch (e) {}
+      }
+    }
+
+    // 2. Intentar por rutas codificadas
     const pathsToTry = [
       fileConfig.filePath,
       ...(fileConfig.filePathAliases || [])
     ].filter(Boolean);
 
-    let lastError = null;
-    for (const filePath of pathsToTry) {
+    for (const rawPath of pathsToTry) {
+      const cleanPath = rawPath.startsWith("/") ? rawPath : "/" + rawPath;
+      const encodedSegments = cleanPath
+        .split("/")
+        .filter(Boolean)
+        .map((segment) => encodeURIComponent(segment))
+        .join("/");
+
       try {
-        const encodedPath = filePath
-          .split("/")
-          .map((segment) => encodeURIComponent(segment))
-          .join("/");
-        return await graphFetch(`/sites/${siteId}/drives/${driveId}/root:${encodedPath}`);
-      } catch (err) {
-        lastError = err;
-        try {
-          return await graphFetch(`/sites/${siteId}/drives/${driveId}/root:${encodeURI(filePath)}`);
-        } catch (err2) {
-          lastError = err2;
-        }
-      }
+        const item = await graphFetch(`/sites/${siteId}/drives/${driveId}/root:/${encodedSegments}`);
+        if (item && item.id) return item;
+      } catch (e) {}
+
+      try {
+        const item = await graphFetch(`/sites/${siteId}/drives/${driveId}/root:${cleanPath}`);
+        if (item && item.id) return item;
+      } catch (e) {}
+
+      try {
+        const item = await graphFetch(`/sites/${siteId}/drives/${driveId}/root:${encodeURI(cleanPath)}`);
+        if (item && item.id) return item;
+      } catch (e) {}
     }
-    throw lastError;
+
+    // 3. Estrategia de búsqueda por nombre de archivo en la biblioteca
+    const fileName = (fileConfig.filePath || "").split("/").pop() || "Equipos.xlsx";
+    try {
+      const searchRes = await graphFetch(`/sites/${siteId}/drives/${driveId}/root/search(q='${encodeURIComponent(fileName)}')`);
+      if (searchRes && searchRes.value && searchRes.value.length > 0) {
+        const matched = searchRes.value.find((i) => (i.name || "").toLowerCase() === fileName.toLowerCase()) || searchRes.value[0];
+        if (matched) return matched;
+      }
+    } catch (e) {}
+
+    // 4. Búsqueda en todas las bibliotecas del sitio
+    try {
+      const drivesRes = await graphFetch(`/sites/${siteId}/drives`);
+      for (const d of (drivesRes.value || [])) {
+        if (d.id === driveId) continue;
+        try {
+          const searchRes = await graphFetch(`/sites/${siteId}/drives/${d.id}/root/search(q='${encodeURIComponent(fileName)}')`);
+          if (searchRes && searchRes.value && searchRes.value.length > 0) {
+            const matched = searchRes.value.find((i) => (i.name || "").toLowerCase() === fileName.toLowerCase()) || searchRes.value[0];
+            if (matched) {
+              matched._driveId = d.id;
+              return matched;
+            }
+          }
+        } catch (e) {}
+      }
+    } catch (e) {}
+
+    const error = new Error(`No se encontró el archivo "${fileConfig.filePath}" en SharePoint.`);
+    error.status = 404;
+    error.graphCode = "itemNotFound";
+    throw error;
   }
 
   async function downloadExcelFile(fileConfig = APP_CONFIG.graph.sharePointFile) {
     const siteId = await getSiteId(fileConfig);
     const driveId = await getDriveId(siteId, fileConfig);
     const item = await getFileItem(siteId, driveId, fileConfig);
+    const targetDriveId = item._driveId || driveId;
 
-    return graphFetch(`/sites/${siteId}/drives/${driveId}/items/${item.id}/content`, {
+    return graphFetch(`/sites/${siteId}/drives/${targetDriveId}/items/${item.id}/content`, {
       responseType: "arrayBuffer"
     });
   }

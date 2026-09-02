@@ -20,12 +20,15 @@ const APP_CONFIG = {
       siteHostname: "provexpress.sharepoint.com",
       sitePath: "/sites/ProvexpressIntranet/servicios",
       driveName: "Documentos",
-      driveNameAliases: ["Documentos compartidos", "Documents"],
+      driveNameAliases: ["Documentos compartidos", "Documents", "Shared Documents"],
       filePath: "/Técnico de soporte/Inventario Renta Bodega/Equipos.xlsx",
       filePathAliases: [
         "/Técnico de soporte/Inventario Renta Bodega/Equipos.xlsx",
-        "/Tecnico de soporte/Inventario Renta Bodega/Equipos.xlsx"
+        "/Tecnico de soporte/Inventario Renta Bodega/Equipos.xlsx",
+        "/Inventario Renta Bodega/Equipos.xlsx",
+        "Equipos.xlsx"
       ],
+      itemId: "1FA0AA63-5AED-4ADC-B947-E9540DA81880",
       sheetName: "Disponible para Rentar"
     }
   }
