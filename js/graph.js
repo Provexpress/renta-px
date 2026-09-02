@@ -47,23 +47,21 @@
     }
   }
 
-  async function getSiteId() {
-    const file = APP_CONFIG.graph.sharePointFile;
-    const site = await graphFetch(`/sites/${file.siteHostname}:${file.sitePath}`);
+  async function getSiteId(fileConfig = APP_CONFIG.graph.sharePointFile) {
+    const site = await graphFetch(`/sites/${fileConfig.siteHostname}:${fileConfig.sitePath}`);
     return site.id;
   }
 
-  async function getDriveId(siteId) {
-    const file = APP_CONFIG.graph.sharePointFile;
+  async function getDriveId(siteId, fileConfig = APP_CONFIG.graph.sharePointFile) {
     const drives = await graphFetch(`/sites/${siteId}/drives`);
-    const allowedNames = [file.driveName, ...(file.driveNameAliases || [])]
+    const allowedNames = [fileConfig.driveName, ...(fileConfig.driveNameAliases || [])]
       .filter(Boolean)
       .map((name) => name.toLowerCase());
     const drive = (drives.value || []).find((item) => allowedNames.includes(String(item.name || "").toLowerCase()));
 
     if (!drive) {
       const available = (drives.value || []).map((item) => item.name).join(", ");
-      const error = new Error(`No se encontró la biblioteca "${file.driveName}" en SharePoint. Bibliotecas disponibles: ${available}`);
+      const error = new Error(`No se encontró la biblioteca "${fileConfig.driveName}" en SharePoint. Bibliotecas disponibles: ${available}`);
       error.status = 404;
       throw error;
     }
@@ -71,15 +69,36 @@
     return drive.id;
   }
 
-  async function getFileItem(siteId, driveId) {
-    const file = APP_CONFIG.graph.sharePointFile;
-    return graphFetch(`/sites/${siteId}/drives/${driveId}/root:${encodeURI(file.filePath)}`);
+  async function getFileItem(siteId, driveId, fileConfig = APP_CONFIG.graph.sharePointFile) {
+    const pathsToTry = [
+      fileConfig.filePath,
+      ...(fileConfig.filePathAliases || [])
+    ].filter(Boolean);
+
+    let lastError = null;
+    for (const filePath of pathsToTry) {
+      try {
+        const encodedPath = filePath
+          .split("/")
+          .map((segment) => encodeURIComponent(segment))
+          .join("/");
+        return await graphFetch(`/sites/${siteId}/drives/${driveId}/root:${encodedPath}`);
+      } catch (err) {
+        lastError = err;
+        try {
+          return await graphFetch(`/sites/${siteId}/drives/${driveId}/root:${encodeURI(filePath)}`);
+        } catch (err2) {
+          lastError = err2;
+        }
+      }
+    }
+    throw lastError;
   }
 
-  async function downloadExcelFile() {
-    const siteId = await getSiteId();
-    const driveId = await getDriveId(siteId);
-    const item = await getFileItem(siteId, driveId);
+  async function downloadExcelFile(fileConfig = APP_CONFIG.graph.sharePointFile) {
+    const siteId = await getSiteId(fileConfig);
+    const driveId = await getDriveId(siteId, fileConfig);
+    const item = await getFileItem(siteId, driveId, fileConfig);
 
     return graphFetch(`/sites/${siteId}/drives/${driveId}/items/${item.id}/content`, {
       responseType: "arrayBuffer"

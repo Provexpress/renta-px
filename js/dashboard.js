@@ -3,35 +3,37 @@
   let activeCommercialFilter = "";
   let activeDataset = "renta";
 
-  function renderDashboard({ profile, user, rows, scopedRows, subRentRows = [], accessoriesRows = [] }) {
+  function renderDashboard({ profile, user, rows, scopedRows, subRentRows = [], accessoriesRows = [], availableInventoryRows = [] }) {
     destroyCharts();
-    normalizeActiveDataset(user, scopedRows, subRentRows, accessoriesRows);
-    const datasetRows = getDatasetRows(user, scopedRows, subRentRows, accessoriesRows);
+    normalizeActiveDataset(user, scopedRows, subRentRows, accessoriesRows, availableInventoryRows);
+    const datasetRows = getDatasetRows(user, scopedRows, subRentRows, accessoriesRows, availableInventoryRows);
     const visibleRows = getVisibleRows(user, datasetRows);
 
     const app = document.getElementById("app");
+    const isAvailableDataset = activeDataset === "disponible";
+
     app.innerHTML = `
       <main class="dashboard-page">
         ${renderHeader(profile, user)}
         <p class="status-line">Datos cargados desde SharePoint</p>
-        ${renderDatasetTabs(user, scopedRows, subRentRows, accessoriesRows)}
+        ${renderDatasetTabs(user, scopedRows, subRentRows, accessoriesRows, availableInventoryRows)}
         ${renderDashboardControls(user, datasetRows, visibleRows)}
         ${renderKpis(user, visibleRows)}
         <section class="content-grid">
-          ${renderQualityPanel(visibleRows)}
+          ${!isAvailableDataset ? renderQualityPanel(visibleRows) : ""}
           ${renderCharts(user)}
           ${TableView.renderTableShell(user, getDatasetLabel())}
         </section>
       </main>
     `;
 
-    bindDashboardEvents({ profile, user, rows, scopedRows, subRentRows, accessoriesRows });
+    bindDashboardEvents({ profile, user, rows, scopedRows, subRentRows, accessoriesRows, availableInventoryRows });
     renderChartInstances(user, visibleRows);
     TableView.initTable(user, visibleRows, { datasetLabel: getDatasetLabel(), datasetKey: activeDataset });
   }
 
-  function renderDatasetTabs(user, scopedRows, subRentRows, accessoriesRows) {
-    const datasets = getAvailableDatasets(user, scopedRows, subRentRows, accessoriesRows);
+  function renderDatasetTabs(user, scopedRows, subRentRows, accessoriesRows, availableInventoryRows) {
+    const datasets = getAvailableDatasets(user, scopedRows, subRentRows, accessoriesRows, availableInventoryRows);
     if (datasets.length < 2) {
       return "";
     }
@@ -39,7 +41,7 @@
     return `
       <nav class="dataset-tabs" aria-label="Vistas de arriendo">
         ${datasets.map((dataset) => `
-          <button class="dataset-tab ${activeDataset === dataset.key ? "active" : ""}" type="button" data-dataset="${dataset.key}">${dataset.label}</button>
+          <button class="dataset-tab ${activeDataset === dataset.key ? "active" : ""}" type="button" data-dataset="${dataset.key}">${escapeHtml(dataset.label)}</button>
         `).join("")}
       </nav>
     `;
@@ -49,6 +51,9 @@
     const displayName = escapeHtml(profile.displayName || "Usuario Microsoft");
     const email = escapeHtml(profile.mail || profile.userPrincipalName || user.email || "");
     const role = escapeHtml(getRoleLabel(user.role));
+    const subtitle = PermissionService.canViewMainDashboard(user)
+      ? "Dashboard de Arriendos e Inventario Comercial"
+      : "Inventario de Equipos para Clientes";
 
     return `
       <header class="topbar">
@@ -57,7 +62,7 @@
           <div>
             <p class="eyebrow">Provexpress</p>
             <h1 class="brand-title">Renta PX</h1>
-            <p class="brand-subtitle">Dashboard de Arriendos</p>
+            <p class="brand-subtitle">${escapeHtml(subtitle)}</p>
           </div>
         </div>
         <div class="user-panel">
@@ -72,7 +77,7 @@
   }
 
   function renderDashboardControls(user, rows, visibleRows) {
-    if (user.role !== "gerencia") {
+    if (user.role !== "gerencia" || activeDataset === "disponible") {
       return "";
     }
 
@@ -122,7 +127,11 @@
     });
   }
 
-  function getDatasetRows(user, scopedRows, subRentRows, accessoriesRows) {
+  function getDatasetRows(user, scopedRows, subRentRows, accessoriesRows, availableInventoryRows = []) {
+    if (activeDataset === "disponible") {
+      return availableInventoryRows;
+    }
+
     if (PermissionService.canViewSubRent(user) && activeDataset === "subrenta") {
       return subRentRows;
     }
@@ -134,30 +143,36 @@
     return scopedRows;
   }
 
-  function getAvailableDatasets(user, scopedRows, subRentRows, accessoriesRows) {
-    const datasets = [{ key: "renta", label: "Renta" }];
+  function getAvailableDatasets(user, scopedRows, subRentRows, accessoriesRows, availableInventoryRows = []) {
+    const datasets = [];
 
-    if (PermissionService.canViewSubRent(user) && subRentRows.length > 0) {
-      datasets.push({ key: "subrenta", label: "Subrenta" });
+    if (PermissionService.canViewMainDashboard(user)) {
+      if (!PermissionService.isCommercial(user) || scopedRows.length > 0) {
+        datasets.push({ key: "renta", label: "Renta" });
+      }
+
+      if (PermissionService.canViewSubRent(user) && subRentRows.length > 0) {
+        datasets.push({ key: "subrenta", label: "Subrenta" });
+      }
+
+      if (PermissionService.canViewAccessories(user) && accessoriesRows.length > 0) {
+        datasets.push({ key: "accesorios", label: "Accesorios" });
+      }
     }
 
-    if (PermissionService.canViewAccessories(user) && accessoriesRows.length > 0) {
-      datasets.push({ key: "accesorios", label: "Accesorios" });
-    }
-
-    if (PermissionService.isCommercial(user) && !scopedRows.length) {
-      return datasets.filter((dataset) => dataset.key !== "renta");
+    if (PermissionService.canViewAvailableInventory(user) && availableInventoryRows.length > 0) {
+      datasets.push({ key: "disponible", label: "Disponible para Rentar" });
     }
 
     return datasets;
   }
 
-  function normalizeActiveDataset(user, scopedRows, subRentRows, accessoriesRows) {
-    const datasets = getAvailableDatasets(user, scopedRows, subRentRows, accessoriesRows);
+  function normalizeActiveDataset(user, scopedRows, subRentRows, accessoriesRows, availableInventoryRows = []) {
+    const datasets = getAvailableDatasets(user, scopedRows, subRentRows, accessoriesRows, availableInventoryRows);
     const datasetKeys = datasets.map((dataset) => dataset.key);
 
     if (!datasetKeys.includes(activeDataset)) {
-      activeDataset = datasetKeys[0] || "renta";
+      activeDataset = datasetKeys[0] || "disponible";
     }
   }
 
@@ -165,13 +180,14 @@
     const labels = {
       renta: "Renta",
       subrenta: "Subrenta",
-      accesorios: "Accesorios"
+      accesorios: "Accesorios",
+      disponible: "Disponible para Rentar"
     };
     return labels[activeDataset] || labels.renta;
   }
 
   function getVisibleRows(user, rows) {
-    if (user.role !== "gerencia" || !activeCommercialFilter) {
+    if (user.role !== "gerencia" || !activeCommercialFilter || activeDataset === "disponible") {
       return rows;
     }
 
@@ -193,10 +209,20 @@
   }
 
   function renderKpis(user, rows) {
-    const metrics = getMetrics(rows);
     let cards;
 
-    if (user.role === "operaciones") {
+    if (activeDataset === "disponible") {
+      const metrics = getAvailableInventoryMetrics(rows);
+      cards = [
+        { label: "Equipos Disponibles", value: formatNumber(metrics.total) },
+        { label: "Portátiles Disponibles", value: formatNumber(metrics.portatiles) },
+        { label: "PCs / Desktops Disponibles", value: formatNumber(metrics.pcs) },
+        { label: "Otros Equipos", value: formatNumber(metrics.otros) },
+        { label: "Marcas Disponibles", value: formatNumber(metrics.marcas) },
+        { label: "Canon Promedio Sugerido", value: formatCurrency(metrics.canonPromedio) }
+      ];
+    } else if (user.role === "operaciones") {
+      const metrics = getMetrics(rows);
       const quality = getQualityCounts(rows);
       cards = [
         { label: "Equipos", value: formatNumber(metrics.equipos) },
@@ -208,6 +234,7 @@
         { label: "Completos", value: formatNumber(rows.filter((row) => row.dataQualityStatus === "ok").length) }
       ];
     } else if (PermissionService.isCommercial(user)) {
+      const metrics = getMetrics(rows);
       cards = [
         { label: "Mis equipos", value: formatNumber(metrics.equipos) },
         { label: "Mis clientes", value: formatNumber(metrics.clientes) },
@@ -218,6 +245,7 @@
         { label: "Mis alertas", value: formatNumber(metrics.alertas), help: "Datos por revisar" }
       ];
     } else {
+      const metrics = getMetrics(rows);
       cards = [
         { label: "Equipos", value: formatNumber(metrics.equipos) },
         { label: "Clientes", value: formatNumber(metrics.clientes) },
@@ -240,6 +268,40 @@
         `).join("")}
       </section>
     `;
+  }
+
+  function getAvailableInventoryMetrics(rows) {
+    let portatiles = 0;
+    let pcs = 0;
+    let otros = 0;
+    let totalCanon = 0;
+    let countCanon = 0;
+
+    rows.forEach((row) => {
+      const tipo = ExcelService.comparableText(row.tipo);
+      if (tipo.includes("portatil") || tipo.includes("laptop")) {
+        portatiles += 1;
+      } else if (tipo.includes("pc") || tipo.includes("desktop") || tipo.includes("computador") || tipo.includes("escritorio")) {
+        pcs += 1;
+      } else {
+        otros += 1;
+      }
+
+      const moneyVal = row.valorRentaCliente || row.valorArriendo;
+      if (moneyVal > 0) {
+        totalCanon += moneyVal;
+        countCanon += 1;
+      }
+    });
+
+    return {
+      total: rows.length,
+      portatiles,
+      pcs,
+      otros,
+      marcas: countUnique(rows, "marca"),
+      canonPromedio: countCanon ? totalCanon / countCanon : 0
+    };
   }
 
   function renderQualityPanel(rows) {
@@ -269,6 +331,29 @@
   }
 
   function renderCharts(user) {
+    if (activeDataset === "disponible") {
+      return `
+        <section class="chart-grid">
+          <article class="chart-panel">
+            <h2 class="panel-title">Equipos disponibles por tipo</h2>
+            <div class="chart-box"><canvas id="typeChart"></canvas></div>
+          </article>
+          <article class="chart-panel">
+            <h2 class="panel-title">Equipos disponibles por marca</h2>
+            <div class="chart-box"><canvas id="brandChart"></canvas></div>
+          </article>
+          <article class="chart-panel">
+            <h2 class="panel-title">Distribución por procesador</h2>
+            <div class="chart-box"><canvas id="processorChart"></canvas></div>
+          </article>
+          <article class="chart-panel">
+            <h2 class="panel-title">Distribución por memoria RAM</h2>
+            <div class="chart-box"><canvas id="memoryChart"></canvas></div>
+          </article>
+        </section>
+      `;
+    }
+
     const showCommercialRanking = PermissionService.canViewCommercialRanking(user);
     const clientTitle = PermissionService.isCommercial(user)
       ? "Mis clientes por canon"
@@ -307,6 +392,14 @@
   }
 
   function renderChartInstances(user, rows) {
+    if (activeDataset === "disponible") {
+      createDoughnutChart("typeChart", groupCount(rows, "tipo", 8));
+      createDoughnutChart("brandChart", groupCount(rows, "marca", 8));
+      createBarChart("processorChart", groupCount(rows, "procesador", 8), "Equipos");
+      createBarChart("memoryChart", groupCount(rows, "memoria", 8), "Equipos");
+      return;
+    }
+
     if (PermissionService.canViewFinancials(user)) {
       createBarChart("clientsChart", groupSum(rows, "cliente", "valorArriendo", 8), "Canon");
     } else {
@@ -480,6 +573,7 @@
       finanzas: "Finanzas",
       operaciones: "Operaciones",
       comercial: "Comercial",
+      general: "Consulta General",
       sin_permiso: "Sin permiso"
     };
     return labels[role] || role;

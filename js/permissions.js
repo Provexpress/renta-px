@@ -139,7 +139,7 @@ const USER_ACCESS = {
 
     if (!access) {
       return {
-        role: "sin_permiso",
+        role: "general",
         comercial: null,
         email
       };
@@ -175,12 +175,20 @@ const USER_ACCESS = {
     return ["gerencia", "finanzas", "operaciones"].includes(user.role);
   }
 
+  function canViewMainDashboard(user) {
+    return ["gerencia", "finanzas", "operaciones", "comercial"].includes(user.role);
+  }
+
   function canViewSubRent(user) {
     return user.role === "gerencia" || Boolean(user.subRenta);
   }
 
   function canViewAccessories(user) {
     return user.role === "gerencia" || isCommercial(user);
+  }
+
+  function canViewAvailableInventory(user) {
+    return user && user.role !== "sin_permiso";
   }
 
   function getScopedRows(user, rows) {
@@ -200,8 +208,10 @@ const USER_ACCESS = {
     canViewFinancials,
     canViewCommercialRanking,
     canViewGlobalDashboard,
+    canViewMainDashboard,
     canViewSubRent,
     canViewAccessories,
+    canViewAvailableInventory,
     getScopedRows
   };
 })();

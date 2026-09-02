@@ -31,24 +31,79 @@
         return;
       }
 
-      const arrayBuffer = await GraphService.downloadExcelFile();
-      const rawRows = ExcelService.readExcelArrayBuffer(arrayBuffer, APP_CONFIG.graph.sharePointFile.sheetName);
-      const rows = ExcelService.normalizeRows(rawRows);
-      const scopedRows = PermissionService.getScopedRows(user, rows);
-      const subRentRows = getSubRentRows(user, arrayBuffer);
-      const accessoriesRows = getAccessoriesRows(user, arrayBuffer);
+      let rows = [];
+      let scopedRows = [];
+      let subRentRows = [];
+      let accessoriesRows = [];
+      let availableInventoryRows = [];
+      let mainLoadError = null;
 
-      if (!scopedRows.length && !subRentRows.length && !accessoriesRows.length && PermissionService.isCommercial(user)) {
-        renderError("No hay registros asignados a este comercial.");
+      // Cargar inventario disponible para clientes (accesible para todos)
+      try {
+        availableInventoryRows = await getAvailableInventoryRows(user);
+      } catch (err) {
+        console.warn("Error cargando inventario disponible:", err);
+      }
+
+      // Cargar base principal de arriendos si el usuario tiene rol habilitado
+      if (PermissionService.canViewMainDashboard(user)) {
+        try {
+          const arrayBuffer = await GraphService.downloadExcelFile(APP_CONFIG.graph.sharePointFile);
+          const rawRows = ExcelService.readExcelArrayBuffer(arrayBuffer, APP_CONFIG.graph.sharePointFile.sheetName);
+          rows = ExcelService.normalizeRows(rawRows);
+          scopedRows = PermissionService.getScopedRows(user, rows);
+          subRentRows = getSubRentRows(user, arrayBuffer);
+          accessoriesRows = getAccessoriesRows(user, arrayBuffer);
+        } catch (error) {
+          mainLoadError = error;
+          console.warn("Error cargando base principal de arriendos:", error);
+        }
+      }
+
+      const hasAnyData = scopedRows.length > 0 || subRentRows.length > 0 || accessoriesRows.length > 0 || availableInventoryRows.length > 0;
+
+      if (!hasAnyData) {
+        if (PermissionService.isCommercial(user)) {
+          renderError("No hay registros asignados a este comercial ni inventario disponible.");
+        } else if (mainLoadError) {
+          renderError(getFriendlyError(mainLoadError), mainLoadError);
+        } else {
+          renderError("No se encontraron registros en los archivos configurados.");
+        }
         return;
       }
 
-      DashboardView.renderDashboard({ profile, user, rows, scopedRows, subRentRows, accessoriesRows });
-      if (PermissionService.canViewGlobalDashboard(user)) {
+      DashboardView.renderDashboard({
+        profile,
+        user,
+        rows,
+        scopedRows,
+        subRentRows,
+        accessoriesRows,
+        availableInventoryRows
+      });
+
+      if (PermissionService.canViewGlobalDashboard(user) && rows.length > 0) {
         validateExpectedReading(rows);
       }
     } catch (error) {
       renderError(getFriendlyError(error), error);
+    }
+  }
+
+  async function getAvailableInventoryRows(user) {
+    const fileConfig = APP_CONFIG.graph && APP_CONFIG.graph.availableInventoryFile;
+    if (!fileConfig || !PermissionService.canViewAvailableInventory(user)) {
+      return [];
+    }
+
+    try {
+      const arrayBuffer = await GraphService.downloadExcelFile(fileConfig);
+      const rawRows = ExcelService.readExcelArrayBuffer(arrayBuffer, fileConfig.sheetName);
+      return ExcelService.normalizeAvailableInventoryRows(rawRows);
+    } catch (error) {
+      console.warn("No se pudo leer el archivo de inventario disponible.", error);
+      return [];
     }
   }
 

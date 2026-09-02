@@ -75,6 +75,14 @@ const APP_CONFIG = {
       sheetName: "Hoja1",
       subRentSheetName: "PC COM",
       accessoriesSheetName: "ACCESORIOS"
+    },
+    availableInventoryFile: {
+      siteHostname: "empresa.sharepoint.com",
+      sitePath: "/sites/NOMBRE_DEL_SITIO",
+      driveName: "Documents",
+      driveNameAliases: ["Documentos", "Documentos compartidos"],
+      filePath: "/Ruta/Archivo/Equipos.xlsx",
+      sheetName: "Disponible para Rentar"
     }
   }
 };
@@ -86,10 +94,11 @@ Edita `js/permissions.js` y agrega los correos reales en `USER_ACCESS`.
 
 Roles soportados:
 
-- `gerencia`: ve consolidado completo.
-- `finanzas`: ve rentabilidad global.
-- `operaciones`: ve inventario global y puede ocultar columnas financieras.
-- `comercial`: ve solo las filas donde `row.comercial` coincide con su comercial asignado.
+- `gerencia`: ve consolidado completo y catálogo de disponibles.
+- `finanzas`: ve rentabilidad global y catálogo de disponibles.
+- `operaciones`: ve inventario global y catálogo de disponibles.
+- `comercial`: ve solo sus filas asignadas en arriendos y el catálogo de disponibles.
+- `general` (cualquier usuario corporativo autenticado): ve el catálogo comercial de equipos disponibles para ofrecer a clientes sin acceso a cifras internas de rentabilidad.
 
 Para comerciales puedes usar `comercialAliases`. Esto ayuda cuando el correo tiene el nombre completo, pero en el Excel aparece un nombre corto como `OSCAR BELTRAN` o `ASTRID JIMENEZ`.
 

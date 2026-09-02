@@ -15,6 +15,18 @@ const APP_CONFIG = {
       sheetName: "PROVEXPRESS",
       subRentSheetName: "PC COM",
       accessoriesSheetName: "ACCESORIOS"
+    },
+    availableInventoryFile: {
+      siteHostname: "provexpress.sharepoint.com",
+      sitePath: "/sites/ProvexpressIntranet/servicios",
+      driveName: "Documentos",
+      driveNameAliases: ["Documentos compartidos", "Documents"],
+      filePath: "/Técnico de soporte/Inventario Renta Bodega/Equipos.xlsx",
+      filePathAliases: [
+        "/Técnico de soporte/Inventario Renta Bodega/Equipos.xlsx",
+        "/Tecnico de soporte/Inventario Renta Bodega/Equipos.xlsx"
+      ],
+      sheetName: "Disponible para Rentar"
     }
   }
 };

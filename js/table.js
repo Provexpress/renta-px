@@ -33,6 +33,17 @@
     { key: "utilidadRenta", label: "Utilidad de renta", type: "currency" },
     { key: "margen", label: "Margen", type: "percent" }
   ];
+  const AVAILABLE_INVENTORY_COLUMNS = [
+    { key: "tipo", label: "Tipo" },
+    { key: "marca", label: "Marca" },
+    { key: "modelo", label: "Modelo" },
+    { key: "serial", label: "Serial" },
+    { key: "placa", label: "Placa" },
+    { key: "procesador", label: "Procesador" },
+    { key: "memoria", label: "Memoria (GB)" },
+    { key: "tamanoDisco", label: "Tamaño Disco (GB)" },
+    { key: "valorRentaCliente", label: "Valor Renta a Cliente", type: "currency" }
+  ];
   let state = {
     rows: [],
     filteredRows: [],
@@ -45,9 +56,32 @@
   };
 
   function renderTableShell(user, datasetLabel = "Renta") {
-    const title = PermissionService.isCommercial(user)
-      ? "Mi tabla de equipos"
-      : `Tabla de equipos - ${datasetLabel}`;
+    const isAvailable = datasetLabel === "Disponible para Rentar";
+    const title = isAvailable
+      ? "Inventario de Equipos Disponibles para Ofrecer a Clientes"
+      : PermissionService.isCommercial(user)
+        ? "Mi tabla de equipos"
+        : `Tabla de equipos - ${datasetLabel}`;
+
+    if (isAvailable) {
+      return `
+        <section class="panel">
+          <div class="panel-header-row">
+            <h2 class="panel-title">${title}</h2>
+            <span class="state-chip">Catálogo Comercial</span>
+          </div>
+          <div class="table-toolbar table-toolbar-available">
+            <input id="tableSearch" type="search" placeholder="Buscar por procesador, modelo, serial, etc.">
+            <select id="typeFilter"><option value="">Tipo</option></select>
+            <select id="brandFilter"><option value="">Marca</option></select>
+            <select id="processorFilter"><option value="">Procesador</option></select>
+            <select id="memoryFilter"><option value="">Memoria</option></select>
+            <button class="primary-button table-export-button" id="exportTableButton" type="button">Exportar Catálogo Excel</button>
+          </div>
+          <div id="tableContainer"></div>
+        </section>
+      `;
+    }
 
     return `
       <section class="panel">
@@ -71,72 +105,133 @@
   }
 
   function initTable(user, rows, options = {}) {
+    const isAvailable = (options.datasetKey === "disponible") || (options.datasetLabel === "Disponible para Rentar");
+
     state = {
       rows,
       filteredRows: rows,
       user,
       page: 1,
-      sortKey: "cliente",
+      sortKey: isAvailable ? "tipo" : "cliente",
       sortDirection: "asc",
       datasetLabel: options.datasetLabel || "Renta",
       datasetKey: options.datasetKey || "renta"
     };
 
-    fillSelect("clientFilter", uniqueValues(rows, "cliente"));
-    fillSelect("brandFilter", uniqueValues(rows, "marca"));
-    fillSelect("typeFilter", uniqueValues(rows, "tipo"));
-    bindFilters();
+    if (isAvailable) {
+      fillSelect("typeFilter", uniqueValues(rows, "tipo"));
+      fillSelect("brandFilter", uniqueValues(rows, "marca"));
+      fillSelect("processorFilter", uniqueValues(rows, "procesador"));
+      fillSelect("memoryFilter", uniqueValues(rows, "memoria"));
+    } else {
+      fillSelect("clientFilter", uniqueValues(rows, "cliente"));
+      fillSelect("brandFilter", uniqueValues(rows, "marca"));
+      fillSelect("typeFilter", uniqueValues(rows, "tipo"));
+    }
+
+    bindFilters(isAvailable);
     bindExport();
     applyFilters();
   }
 
-  function bindFilters() {
-    ["tableSearch", "clientFilter", "brandFilter", "typeFilter", "statusFilter"].forEach((id) => {
-      document.getElementById(id).addEventListener("input", () => {
-        state.page = 1;
-        applyFilters();
-      });
+  function bindFilters(isAvailable) {
+    const filterIds = isAvailable
+      ? ["tableSearch", "typeFilter", "brandFilter", "processorFilter", "memoryFilter"]
+      : ["tableSearch", "clientFilter", "brandFilter", "typeFilter", "statusFilter"];
+
+    filterIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener("input", () => {
+          state.page = 1;
+          applyFilters();
+        });
+      }
     });
   }
 
   function bindExport() {
-    document.getElementById("exportTableButton").addEventListener("click", exportFilteredRows);
+    const button = document.getElementById("exportTableButton");
+    if (button) {
+      button.addEventListener("click", exportFilteredRows);
+    }
   }
 
   function applyFilters() {
-    const search = ExcelService.comparableText(document.getElementById("tableSearch").value);
-    const client = document.getElementById("clientFilter").value;
-    const brand = document.getElementById("brandFilter").value;
-    const type = document.getElementById("typeFilter").value;
-    const status = document.getElementById("statusFilter").value;
+    const isAvailable = state.datasetKey === "disponible";
+    const searchEl = document.getElementById("tableSearch");
+    const search = ExcelService.comparableText(searchEl ? searchEl.value : "");
 
-    state.filteredRows = state.rows.filter((row) => {
-      const searchText = ExcelService.comparableText([
-        row.cliente,
-        row.comercial,
-        row.tipo,
-        row.marca,
-        row.modelo,
-        row.serial,
-        row.placa,
-        row.memoria,
-        row.tamanoDisco,
-        row.garantia,
-        row.office,
-        row.morral,
-        row.guaya,
-        row.mouse,
-        row.teclado,
-        row.monitor,
-        row.accesorios
-      ].join(" "));
+    if (isAvailable) {
+      const typeEl = document.getElementById("typeFilter");
+      const brandEl = document.getElementById("brandFilter");
+      const procEl = document.getElementById("processorFilter");
+      const memEl = document.getElementById("memoryFilter");
 
-      return (!search || searchText.includes(search))
-        && (!client || row.cliente === client)
-        && (!brand || row.marca === brand)
-        && (!type || row.tipo === type)
-        && (!status || row.dataQualityStatus === status);
-    });
+      const type = typeEl ? typeEl.value : "";
+      const brand = brandEl ? brandEl.value : "";
+      const processor = procEl ? procEl.value : "";
+      const memory = memEl ? memEl.value : "";
+
+      state.filteredRows = state.rows.filter((row) => {
+        const searchText = ExcelService.comparableText([
+          row.tipo,
+          row.marca,
+          row.modelo,
+          row.serial,
+          row.placa,
+          row.procesador,
+          row.memoria,
+          row.tamanoDisco,
+          row.valorRentaCliente,
+          row.valorArriendo
+        ].join(" "));
+
+        return (!search || searchText.includes(search))
+          && (!type || row.tipo === type)
+          && (!brand || row.marca === brand)
+          && (!processor || row.procesador === processor)
+          && (!memory || row.memoria === memory);
+      });
+    } else {
+      const clientEl = document.getElementById("clientFilter");
+      const brandEl = document.getElementById("brandFilter");
+      const typeEl = document.getElementById("typeFilter");
+      const statusEl = document.getElementById("statusFilter");
+
+      const client = clientEl ? clientEl.value : "";
+      const brand = brandEl ? brandEl.value : "";
+      const type = typeEl ? typeEl.value : "";
+      const status = statusEl ? statusEl.value : "";
+
+      state.filteredRows = state.rows.filter((row) => {
+        const searchText = ExcelService.comparableText([
+          row.cliente,
+          row.comercial,
+          row.tipo,
+          row.marca,
+          row.modelo,
+          row.serial,
+          row.placa,
+          row.memoria,
+          row.tamanoDisco,
+          row.garantia,
+          row.office,
+          row.morral,
+          row.guaya,
+          row.mouse,
+          row.teclado,
+          row.monitor,
+          row.accesorios
+        ].join(" "));
+
+        return (!search || searchText.includes(search))
+          && (!client || row.cliente === client)
+          && (!brand || row.marca === brand)
+          && (!type || row.tipo === type)
+          && (!status || row.dataQualityStatus === status);
+      });
+    }
 
     sortRows();
     renderTable();
@@ -225,6 +320,10 @@
   }
 
   function getColumns(user) {
+    if (state.datasetKey === "disponible") {
+      return AVAILABLE_INVENTORY_COLUMNS;
+    }
+
     if (state.datasetKey === "accesorios") {
       return ACCESSORIES_COLUMNS;
     }
@@ -261,7 +360,10 @@
   }
 
   function formatCell(row, column) {
-    const value = row[column.key];
+    let value = row[column.key];
+    if (column.key === "valorRentaCliente" && (value === undefined || value === 0)) {
+      value = row.valorArriendo;
+    }
     if (column.type === "currency") return DashboardView.formatCurrency(value);
     if (column.type === "percent") return DashboardView.formatPercent(value);
     if (column.type === "status") return statusBadge(value);
@@ -274,7 +376,8 @@
     const columns = getCompactExportColumns(getExportColumns(), state.filteredRows);
     const worksheet = buildStyledWorksheet(columns, state.filteredRows);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Renta PX");
+    const sheetTitle = state.datasetKey === "disponible" ? "Equipos Disponibles" : "Renta PX";
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetTitle);
     XLSX.writeFile(workbook, getExportFileName());
   }
 
@@ -294,6 +397,10 @@
   }
 
   function getExportColumns() {
+    if (state.datasetKey === "disponible") {
+      return AVAILABLE_INVENTORY_COLUMNS;
+    }
+
     if (state.datasetKey === "accesorios") {
       return ACCESSORIES_COLUMNS;
     }
@@ -320,9 +427,14 @@
   }
 
   function buildStyledWorksheet(columns, rows) {
-    const title = PermissionService.isCommercial(state.user)
-      ? `Cartera comercial - ${state.user.comercial}`
-      : `${state.datasetLabel} Provexpress - Equipos en arriendo`;
+    let title;
+    if (state.datasetKey === "disponible") {
+      title = "Provexpress - Catálogo de Equipos Disponibles para Renta";
+    } else if (PermissionService.isCommercial(state.user)) {
+      title = `Cartera comercial - ${state.user.comercial}`;
+    } else {
+      title = `${state.datasetLabel} Provexpress - Equipos en arriendo`;
+    }
     const generatedAt = new Date().toLocaleDateString("es-CO");
 
     const data = [
@@ -435,13 +547,15 @@
     const widths = {
       cliente: 30,
       comercial: 26,
-      tipo: 14,
+      tipo: 16,
       marca: 16,
       modelo: 24,
       serial: 24,
       placa: 16,
-      memoria: 14,
-      tamanoDisco: 18,
+      procesador: 24,
+      memoria: 16,
+      tamanoDisco: 20,
+      valorRentaCliente: 22,
       garantia: 16,
       office: 12,
       morral: 12,
@@ -471,6 +585,9 @@
 
   function getExportFileName() {
     const date = new Date().toISOString().slice(0, 10);
+    if (state.datasetKey === "disponible") {
+      return `catalogo-equipos-disponibles-provexpress-${date}.xlsx`;
+    }
     const client = getExportClientName();
     return `renta-px-${client}-${date}.xlsx`;
   }

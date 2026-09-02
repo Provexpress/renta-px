@@ -7,9 +7,14 @@
     placa: "placa",
     procesador: "procesador",
     memoria: "memoria",
+    memoriagb: "memoria",
     tamanodisco: "tamanoDisco",
     tamanodedisco: "tamanoDisco",
+    tamanodiscogb: "tamanoDisco",
+    tamanodediscogb: "tamanoDisco",
     discoduro: "tamanoDisco",
+    discodurogb: "tamanoDisco",
+    disco: "tamanoDisco",
     garantia: "garantia",
     office: "office",
     morral: "morral",
@@ -31,7 +36,15 @@
     mesesarrendado: "mesesArrendado",
     mesesarrendados: "mesesArrendado",
     fechaentrega: "fechaEntrega",
-    fechadeentrega: "fechaEntrega"
+    fechadeentrega: "fechaEntrega",
+    valorrentaacliente: "valorRentaCliente",
+    valorrentacliente: "valorRentaCliente",
+    valorrenta: "valorRentaCliente",
+    valorarriendoacliente: "valorRentaCliente",
+    rentacliente: "valorRentaCliente",
+    canoncliente: "valorRentaCliente",
+    preciorenta: "valorRentaCliente",
+    preciocliente: "valorRentaCliente"
   };
 
   const ACCESSORY_KEYS = ["office", "morral", "guaya", "mouse", "teclado", "monitor"];
@@ -284,9 +297,54 @@
     return "ok";
   }
 
+  function normalizeAvailableInventoryRows(rows) {
+    return rows
+      .map((row, index) => ({ row, index }))
+      .filter(({ row }) => hasExcelData(row))
+      .map(({ row, index }) => normalizeAvailableInventoryRow(row, index))
+      .filter((row) => hasAvailableInventoryData(row));
+  }
+
+  function normalizeAvailableInventoryRow(source, index) {
+    const row = { rowNumber: index + 2 };
+
+    Object.entries(source).forEach(([key, value]) => {
+      row[normalizeKey(key)] = value;
+    });
+
+    row.tipo = normalizeText(row.tipo);
+    row.marca = normalizeText(row.marca);
+    row.modelo = normalizeText(row.modelo);
+    row.serial = normalizeText(row.serial);
+    row.placa = normalizeText(row.placa);
+    row.procesador = normalizeText(row.procesador);
+    row.memoria = normalizeText(row.memoria);
+    row.tamanoDisco = normalizeText(row.tamanoDisco);
+    
+    const moneyVal = row.valorRentaCliente !== undefined && row.valorRentaCliente !== ""
+      ? row.valorRentaCliente
+      : row.valorArriendo;
+    row.valorRentaCliente = parseMoney(moneyVal);
+    row.valorArriendo = row.valorRentaCliente;
+
+    return row;
+  }
+
+  function hasAvailableInventoryData(row) {
+    const fields = [row.tipo, row.marca, row.modelo, row.serial, row.placa, row.procesador];
+    return fields.some((text) => {
+      const normalized = normalizeText(text);
+      if (!normalized) return false;
+      const lower = comparableText(normalized);
+      if (lower.startsWith("total") || lower === "grand total" || lower === "suma") return false;
+      return true;
+    }) || Boolean(row.valorRentaCliente > 0);
+  }
+
   window.ExcelService = {
     readExcelArrayBuffer,
     normalizeRows,
+    normalizeAvailableInventoryRows,
     normalizeKey,
     normalizeText,
     comparableText,

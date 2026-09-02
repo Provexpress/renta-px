@@ -15,6 +15,14 @@ const APP_CONFIG = {
       sheetName: "Hoja1",
       subRentSheetName: "PC COM",
       accessoriesSheetName: "ACCESORIOS"
+    },
+    availableInventoryFile: {
+      siteHostname: "empresa.sharepoint.com",
+      sitePath: "/sites/NOMBRE_DEL_SITIO",
+      driveName: "Documents",
+      driveNameAliases: ["Documentos", "Documentos compartidos"],
+      filePath: "/Ruta/Archivo/Equipos.xlsx",
+      sheetName: "Disponible para Rentar"
     }
   }
 };
