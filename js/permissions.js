@@ -19,7 +19,15 @@ const USER_ACCESS = {
     role: "gerencia",
     comercial: null
   },
-   "c.estrategica@provexpress.com.co": {
+  "rafaelnovoa@provexpress.com.co": {
+    role: "gerencia",
+    comercial: null
+  },
+  "rafael.novoa@provexpress.com.co": {
+    role: "gerencia",
+    comercial: null
+  },
+  "c.estrategica@provexpress.com.co": {
     role: "gerencia",
     comercial: null
   },
