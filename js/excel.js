@@ -10,6 +10,8 @@
     procesado: "procesador",
     proc: "procesador",
     cpu: "procesador",
+    microprocesador: "procesador",
+    micro: "procesador",
     memoria: "memoria",
     memoriagb: "memoria",
     memoriaengb: "memoria",

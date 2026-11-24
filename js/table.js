@@ -213,6 +213,7 @@
           row.modelo,
           row.serial,
           row.placa,
+          row.procesador,
           row.memoria,
           row.tamanoDisco,
           row.garantia,
@@ -342,6 +343,7 @@
       { key: "modelo", label: "Modelo" },
       { key: "serial", label: "Serial" },
       { key: "placa", label: "Placa" },
+      { key: "procesador", label: "Procesador" },
       ...INVENTORY_COLUMNS,
       { key: "fechaEntrega", label: "Fecha entrega" }
     );
@@ -417,6 +419,7 @@
       { key: "modelo", label: "Modelo" },
       { key: "serial", label: "Serial" },
       { key: "placa", label: "Placa" },
+      { key: "procesador", label: "Procesador" },
       { key: "memoria", label: "Memoria" },
       { key: "tamanoDisco", label: "Tamaño disco" },
       { key: "garantia", label: "Garantía" },

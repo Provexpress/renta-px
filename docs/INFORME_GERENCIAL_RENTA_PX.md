@@ -162,6 +162,7 @@ Columnas incluidas en tabla y exportacion:
 - Modelo.
 - Serial.
 - Placa.
+- Procesador.
 - Memoria.
 - Tamano disco.
 - Garantia.
